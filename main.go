@@ -100,7 +100,7 @@ func (tm *TaskManager) AddTask(title string) (*Task, error) {
 	return newTask, nil
 }
 
-func (tm *TaskManager) ListTasks() []*Task {
+func (tm *TaskManager) ListTasks(method string) []*Task {
 	keys := make([]int, 0, len(tm.tasks))
 	for k := range tm.tasks {
 		keys = append(keys, k)
@@ -109,6 +109,14 @@ func (tm *TaskManager) ListTasks() []*Task {
 
 	result := make([]*Task, 0, len(keys))
 	for _, k := range keys {
+		if method == "--pending" && tm.tasks[k].Done {
+			continue
+		}
+
+		if method == "--completed" && !tm.tasks[k].Done {
+			continue
+		}
+
 		result = append(result, tm.tasks[k])
 	}
 	return result
@@ -170,7 +178,8 @@ func main() {
 		}
 		fmt.Printf("Задача добавлена: ID: %d, Title: %s\n", task.ID, task.Title)
 	case "list":
-		tasks := tm.ListTasks()
+		method := os.Args[2]
+		tasks := tm.ListTasks(method)
 		if len(tasks) == 0 {
 			fmt.Println("Список задач пуст")
 			break
