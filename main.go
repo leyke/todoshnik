@@ -18,9 +18,10 @@ type Task struct {
 }
 
 type TaskManager struct {
-	tasks   map[int]*Task
-	nextID  int
-	storage TaskStorage
+	tasks     map[int]*Task
+	nextID    int
+	storage   TaskStorage
+	validator *validator.Validate
 }
 
 type TaskStorage interface {
@@ -56,14 +57,15 @@ func (fs *FileStorage) Load() (map[int]*Task, error) {
 }
 
 func NewTaskManager(storage TaskStorage) (*TaskManager, error) {
-	tasks, error := storage.Load()
-	if error != nil {
-		return nil, error
+	tasks, err := storage.Load()
+	if err != nil {
+		return nil, err
 	}
 
 	tm := &TaskManager{
-		tasks:   tasks,
-		storage: storage,
+		tasks:     tasks,
+		storage:   storage,
+		validator: validator.New(),
 	}
 
 	maxID := 0
@@ -84,8 +86,7 @@ func (tm *TaskManager) AddTask(title string) (*Task, error) {
 		Done:  false,
 	}
 
-	validate := validator.New()
-	validateError := validate.Struct(newTask)
+	validateError := tm.validator.Struct(newTask)
 	if validateError != nil {
 		return nil, validateError
 	}
@@ -137,12 +138,14 @@ func (tm *TaskManager) MarkDone(taskId int) (*Task, error) {
 	_, ok := tm.tasks[taskId]
 	if ok {
 		task := tm.tasks[taskId]
+		prev := task.Done
 		task.Done = true
 		err := tm.storage.Save(tm.tasks)
 		if err != nil {
-			task.Done = false
+			task.Done = prev
 			return nil, err
 		}
+
 		return task, nil
 	}
 
@@ -150,6 +153,8 @@ func (tm *TaskManager) MarkDone(taskId int) (*Task, error) {
 }
 
 func main() {
+	os.MkdirAll("tmp", 0755)
+
 	storage := &FileStorage{filename: "tmp/tasks.json"}
 	tm, err := NewTaskManager(storage)
 	if err != nil {
@@ -171,14 +176,17 @@ func main() {
 	switch command {
 	case "add":
 		newTitle := os.Args[2]
-		task, error := tm.AddTask(newTitle)
-		if error != nil {
-			fmt.Printf("Ошибка при добавлении задачи: %v\n", error)
+		task, err := tm.AddTask(newTitle)
+		if err != nil {
+			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break
 		}
 		fmt.Printf("Задача добавлена: ID: %d, Title: %s\n", task.ID, task.Title)
 	case "list":
-		method := os.Args[2]
+		method := ""
+		if len(os.Args) > 2 {
+			method = os.Args[2]
+		}
 		tasks := tm.ListTasks(method)
 		if len(tasks) == 0 {
 			fmt.Println("Список задач пуст")
