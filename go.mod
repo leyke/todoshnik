@@ -1,4 +1,4 @@
-module todoshnik/m
+module todoshnik
 
 go 1.26.1
 
