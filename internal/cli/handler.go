@@ -2,13 +2,24 @@ package cli
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
-	"todoshnik/internal/task"
+	"todoshnik/internal/domain"
+	"todoshnik/internal/helpers"
+	"todoshnik/internal/service"
 )
 
-func Run(tm *task.TaskManager) {
+type CLIHandler struct {
+	service *service.TaskService
+}
+
+func NewCLIHandler(s *service.TaskService) *CLIHandler {
+	return &CLIHandler{service: s}
+}
+
+func (cli *CLIHandler) Run() {
 	if len(os.Args) < 2 {
 		fmt.Println("Не указана команда")
 		fmt.Println("Использование: go run main.go add | list | delete <Название задачи>|<ID задачи>")
@@ -23,18 +34,18 @@ func Run(tm *task.TaskManager) {
 	switch command {
 	case "add":
 		newTitle := os.Args[2]
-		task, err := tm.AddTask(newTitle)
+		task, err := cli.service.AddTask(newTitle)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break
 		}
 		fmt.Printf("Задача добавлена: ID: %d, Title: %s\n", task.ID, task.Title)
 	case "list":
-		method := ""
-		if len(os.Args) > 2 {
-			method = os.Args[2]
-		}
-		tasks := tm.ListTasks(method)
+		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+		status := listCmd.String("status", "", "Фильтр по статусу: completed или pending")
+		listCmd.Parse(os.Args[2:])
+
+		tasks := cli.service.ListTasks(*status)
 		if len(tasks) == 0 {
 			fmt.Println("Список задач пуст")
 			break
@@ -47,7 +58,7 @@ func Run(tm *task.TaskManager) {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		_, err = tm.MarkDone(taskId)
+		_, err = cli.service.MarkDone(taskId)
 		if err != nil {
 			fmt.Printf("Ошибка пометки задачи как выполненной: %v\n", err)
 		}
@@ -57,7 +68,7 @@ func Run(tm *task.TaskManager) {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		err = tm.DeleteTask(taskId)
+		err = cli.service.DeleteTask(taskId)
 		if err != nil {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 		}
@@ -73,8 +84,8 @@ func getIntFromArgs(args []string, index int) (int, error) {
 	return strconv.Atoi(args[index])
 }
 
-func printList(list []*task.Task) {
+func printList(list []*domain.Task) {
 	for _, task := range list {
-		fmt.Printf("ID: %d, Title: %s, Done: %v\n", task.ID, task.Title, task.Done)
+		fmt.Printf(helpers.TaskPrettyPrintTemplate(), task.ID, task.Title, task.Done)
 	}
 }
