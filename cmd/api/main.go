@@ -8,7 +8,6 @@ import (
 func main() {
 	app := app.InitApp()
 
-	api := api.NewAPIHandler(app.TaskService)
+	api := api.NewAPIHandler(app.TaskService, "./tmp/api.log")
 	api.Run()
-
 }

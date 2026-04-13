@@ -3,26 +3,44 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"todoshnik/internal/helpers"
 	"todoshnik/internal/service"
 )
 
 type APIHandler struct {
 	service *service.TaskService
+	logger  *log.Logger
 }
 
-func NewAPIHandler(s *service.TaskService) *APIHandler {
-	return &APIHandler{service: s}
+func NewAPIHandler(s *service.TaskService, logFile string) *APIHandler {
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	logger := log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	return &APIHandler{service: s, logger: logger}
 }
 
 func (api *APIHandler) Run() {
 	fmt.Printf("Hello\n")
 
-	http.HandleFunc("/ping", api.pingHandler)
-	http.HandleFunc("/tasks", api.tasksHandler)
+	http.Handle("/ping", api.loggingMiddleware(http.HandlerFunc(api.pingHandler)))   // --> adding middleware to route
+	http.Handle("/tasks", api.loggingMiddleware(http.HandlerFunc(api.tasksHandler))) // --> adding middleware to route
 
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8000", nil)
+	if err != nil {
+		fmt.Println("Error: setting up server")
+	}
+}
+
+func (api *APIHandler) loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		api.logger.Println(2, r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (api *APIHandler) tasksHandler(w http.ResponseWriter, r *http.Request) {
