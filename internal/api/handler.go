@@ -15,13 +15,17 @@ type APIHandler struct {
 	logger  *log.Logger
 }
 
-func NewAPIHandler(s *service.TaskService, logFile string) *APIHandler {
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	logger := log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+func NewAPIHandler(s *service.TaskService, logFile *os.File) *APIHandler {
+	logger := log.New(logFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return &APIHandler{service: s, logger: logger}
+}
+
+func (api *APIHandler) Close() {
+	if api.logger != nil {
+		if file, ok := api.logger.Writer().(*os.File); ok {
+			file.Close()
+		}
+	}
 }
 
 func (api *APIHandler) Run() {
@@ -40,6 +44,7 @@ func (api *APIHandler) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		api.logger.Println(2, r.URL.Path)
 		next.ServeHTTP(w, r)
+		fmt.Println("Конец обработки")
 	})
 }
 
