@@ -1,13 +1,16 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 	"sort"
 
 	"todoshnik/internal/domain"
+	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/storage"
 
 	"todoshnik/internal/validation"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type TaskService struct {
@@ -45,9 +48,10 @@ func (s *TaskService) AddTask(title string) (*domain.Task, error) {
 		Done:  false,
 	}
 
-	validateError := validation.Validate(newTask)
-	if validateError != nil {
-		return nil, validateError
+	ve := validation.Validate(newTask)
+	if ve != nil {
+		fmt.Println(ve)
+		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
 	}
 
 	s.tasks[s.nextID] = newTask
@@ -82,31 +86,64 @@ func (s *TaskService) ListTasks(method string) []*domain.Task {
 	return result
 }
 
-func (s *TaskService) DeleteTask(taskId int) error {
-	_, ok := s.tasks[taskId]
-	if ok {
-		delete(s.tasks, taskId)
-
-		return s.storage.Save(s.tasks)
+func (s *TaskService) UpdateTask(taskId int, title string, done bool) (*domain.Task, error) {
+	task, ok := s.tasks[taskId]
+	if !ok {
+		return nil, apperrors.ErrNotFound
 	}
 
-	return errors.New("Задача не найдена")
+	prev := task
+	task.Title = title
+	task.Done = done
+	validateError := validation.Validate(task)
+	if validateError != nil {
+		task.Title = prev.Title
+		task.Done = prev.Done
+		return nil, apperrors.NewValidationErrorFromValidator(validateError.(validator.ValidationErrors))
+	}
+
+	err := s.storage.Save(s.tasks)
+	if err != nil {
+		s.tasks[taskId] = prev
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (s *TaskService) DeleteTask(taskId int) error {
+	_, ok := s.tasks[taskId]
+	if !ok {
+		return apperrors.ErrNotFound
+	}
+
+	delete(s.tasks, taskId)
+
+	return s.storage.Save(s.tasks)
 }
 
 func (s *TaskService) MarkDone(taskId int) (*domain.Task, error) {
 	_, ok := s.tasks[taskId]
-	if ok {
-		task := s.tasks[taskId]
-		prev := task.Done
-		task.Done = true
-		err := s.storage.Save(s.tasks)
-		if err != nil {
-			task.Done = prev
-			return nil, err
-		}
-
-		return task, nil
+	if !ok {
+		return nil, apperrors.ErrNotFound
 	}
 
-	return nil, errors.New("Задача не найдена")
+	task := s.tasks[taskId]
+	prev := task.Done
+	task.Done = true
+	err := s.storage.Save(s.tasks)
+	if err != nil {
+		task.Done = prev
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (s *TaskService) GetTask(taskId int) (*domain.Task, error) {
+	task, ok := s.tasks[taskId]
+	if !ok {
+		return nil, apperrors.ErrNotFound
+	}
+	return task, nil
 }

@@ -2,10 +2,16 @@ package task
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"todoshnik/internal/helpers"
+	"strconv"
+	"todoshnik/internal/api/dto"
+	"todoshnik/internal/api/response"
+	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -20,24 +26,106 @@ func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	method := params.Get("status")
 	tasks := api.service.ListTasks(method)
-	if len(tasks) == 0 {
-		fmt.Fprintf(w, "Список задач пуст")
-	}
 	fmt.Printf("Запрошены задачи\n")
-	json.NewEncoder(w).Encode(tasks)
+	response.WriteJSON(w, http.StatusOK, tasks)
 }
 
 func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var data map[string]string
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	var requestDto dto.CreateTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	title := data["title"]
-	task, err := api.service.AddTask(title)
+	task, err := api.service.AddTask(requestDto.Title)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf(helpers.TaskPrettyPrintTemplate(), task.ID, task.Title, task.Done)
+	fmt.Printf("Создана задача: %v\n", task.ID)
+	response.WriteJSON(w, http.StatusOK, task)
+
+}
+
+func (api *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	var requestDto dto.UpdateTaskRequest
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+	task, err := api.service.UpdateTask(id, requestDto.Title, requestDto.Done)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+
+	fmt.Printf("Обновлена задача: %v\n", task.ID)
+	response.WriteJSON(w, http.StatusOK, task)
+}
+
+func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
+		return
+	}
+
+	task, err := api.service.MarkDone(id)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+
+	fmt.Printf("Отмечена как выполненная задача: %v\n", task.ID)
+	response.WriteJSON(w, http.StatusOK, task)
+}
+
+func (api *Handler) View(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
+		return
+	}
+
+	task, err := api.service.GetTask(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	fmt.Printf("Просмотрена задача: %v\n", task.ID)
+	response.WriteJSON(w, http.StatusCreated, task)
+}
+
+func (api *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
+		return
+	}
+
+	err = api.service.DeleteTask(id)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+
+	fmt.Printf("Удалена задача: %v\n", id)
+	response.WriteJSON(w, http.StatusNoContent, nil)
 }

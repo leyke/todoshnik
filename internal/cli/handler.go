@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"todoshnik/internal/domain"
-	"todoshnik/internal/helpers"
 	"todoshnik/internal/service"
 )
 
@@ -86,6 +85,6 @@ func getIntFromArgs(args []string, index int) (int, error) {
 
 func printList(list []*domain.Task) {
 	for _, task := range list {
-		fmt.Printf(helpers.TaskPrettyPrintTemplate(), task.ID, task.Title, task.Done)
+		fmt.Printf("ID: %d, Title: %s, Done: %v\n", task.ID, task.Title, task.Done)
 	}
 }

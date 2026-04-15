@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	appIntance := app.InitApp()
-	cli := cli.NewCLIHandler(appIntance.TaskService)
+	container := app.InitApp()
+	cli := cli.NewCLIHandler(container.TaskService)
 	cli.Run()
 }

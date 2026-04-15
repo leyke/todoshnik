@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: todoshnik
+  description: API управления задачами в приложении "todoshnik".
+  version: 1.0.0
+
+paths:
+  /ping:
+    get:
+      summary: Ping
+      operationId: ping
+      description: Проверка работоспособности сервиса.
+      responses:
+        '200':
+          description: Service is alive.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /tasks:
+    get:
+      summary: Список задач
+      operationId: listTasks
+      description: Возвращает список всех задач.
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Список задач.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+    post:
+      summary: Создать задачу
+      operationId: createTask
+      description: Создает новую задачу.
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+            example:
+              title: Новая задача
+      responses:
+        '201':
+          description: Задача создана успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Уникальный идентификатор задачи.
+        schema:
+          type: integer
+          example: 7
+
+    get:
+      summary: Получить задачу
+      operationId: viewTask
+      description: Возвращает одну задачу по её ID.
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Запрошенная задача.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Задача не найдена.
+
+    put:
+      summary: Изменить задачу
+      operationId: updateTask
+      description: Изменяет существующую задачу по её ID.
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+            example:
+              title: Новая задача изменена
+      responses:
+        '200':
+          description: Задача изменена успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Задача не найдена.
+
+    delete:
+      summary: Удалить задачу
+      operationId: deleteTask
+      description: Удаляет задачу по её ID.
+      tags:
+        - tasks
+      responses:
+        '204':
+          description: Задача удалена успешно.
+        '404':
+          description: Задача не найдена.
+
+  /tasks/{id}/done:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Уникальный идентификатор задачи.
+        schema:
+          type: integer
+          example: 7
+
+    post:
+      summary: Отметить задачу как выполненную
+      operationId: markTaskDone
+      description: Отмечает указанную задачу как выполненную.
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Задача отмечена как выполненная.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Задача не найдена.
+
+components:
+  schemas:
+    TaskInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Заголовок задачи.
+          example: Измененная задача
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор задачи.
+          example: 7
+        title:
+          type: string
+          description: Заголовок задачи.
+          example: отвалидировать
+        done:
+          type: boolean
+          description: Статус выполнения задачи.
+          example: false
