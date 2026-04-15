@@ -2,14 +2,12 @@
 # Тудушник
 Приложение сохраняющее задачи в память и отмечающее их статус. Собираю как практику после изучения Golang
 
-## Доступные команды
+## Доступные контейнеры
 
-### Управление задачей
-- `add <Название>` - Добавляет новую задачу
-- `list` - Выводит все задачи
-- `done <id>` - Отмечает задачу выполненной
-- `delete <id>` - Удаляет задачу
+### Консольный
+Запуск `go run cmd/cli/main.go`  
+[Справочник команд](https://github.com/leyke/todoshnik/blob/main/docs/cli/readme.md)
 
-### Опции для list
-- `list --pending` - Выводит все активные
-- `list --complited` - Выводит все завершенные
+### АПИ
+Запуск `go run cmd/api/main.go`  
+[OpenApi спецификция](https://github.com/leyke/todoshnik/blob/main/docs/openapi/openapi.yaml)
