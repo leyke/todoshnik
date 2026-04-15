@@ -1,21 +1,18 @@
 package main
 
 import (
-	"log"
-	"os"
 	"todoshnik/internal/api"
 	"todoshnik/internal/app"
 )
 
-func main() {
-	app := app.InitApp()
-	logFile, err := os.OpenFile("./tmp/api.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
+var logPath string = "./tmp/api.log"
 
-	api := api.NewAPIHandler(app.TaskService, logFile)
-	defer api.Close()
+func main() {
+	container := app.InitApp()
+	log, logFile := app.NewLogger(logPath)
+
+	api := api.NewAPIHandler(container, log)
+	defer logFile.Close()
 
 	api.Run()
 }
