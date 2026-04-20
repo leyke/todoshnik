@@ -1,6 +1,7 @@
 package app
 
 import (
+	"os"
 	"todoshnik/internal/service"
 	"todoshnik/internal/storage"
 )
@@ -10,6 +11,7 @@ type App struct {
 }
 
 func InitApp() *App {
+	os.MkdirAll("./tmp", 0755)
 	storage := storage.NewFileStorage("./tmp/tasks.json")
 	tm, err := service.NewTaskService(storage)
 	if err != nil {

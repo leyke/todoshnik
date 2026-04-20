@@ -5,12 +5,13 @@ import (
 	"todoshnik/internal/api/middleware"
 
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func (api *APIHandler) Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logging(api.logger))
-
+	r.Use(chimiddleware.Recoverer)
 	// Tasks
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", api.taskHandler.List)

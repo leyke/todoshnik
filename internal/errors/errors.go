@@ -34,6 +34,7 @@ func (e ValidationError) Error() string {
 	return "Ошибка валидации: " + strings.Join(errs, "; ")
 
 }
+
 func NewValidationErrorFromValidator(ve validator.ValidationErrors) ValidationError {
 	errors := make(map[string]string)
 
@@ -45,7 +46,7 @@ func NewValidationErrorFromValidator(ve validator.ValidationErrors) ValidationEr
 		message := getValidatorMessage(field, tag, param)
 		errors[field] = message
 	}
-	fmt.Println(errors)
+
 	return ValidationError{
 		error:  ErrNotValidate,
 		Errors: errors,

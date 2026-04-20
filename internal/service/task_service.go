@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
@@ -17,6 +18,7 @@ type TaskService struct {
 	tasks   map[int]*domain.Task
 	nextID  int
 	storage storage.TaskStorage
+	mu      sync.Mutex
 }
 
 func NewTaskService(storage storage.TaskStorage) (*TaskService, error) {
@@ -42,6 +44,9 @@ func NewTaskService(storage storage.TaskStorage) (*TaskService, error) {
 }
 
 func (s *TaskService) AddTask(title string) (*domain.Task, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	newTask := &domain.Task{
 		ID:    s.nextID,
 		Title: title,
