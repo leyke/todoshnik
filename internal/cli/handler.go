@@ -33,7 +33,7 @@ func (cli *CLIHandler) Run() {
 	switch command {
 	case "add":
 		newTitle := os.Args[2]
-		task, err := cli.service.AddTask(newTitle)
+		task, err := cli.service.AddTask(newTitle, 0)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break

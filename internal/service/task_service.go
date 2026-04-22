@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 
@@ -17,11 +18,14 @@ import (
 type TaskService struct {
 	tasks   map[int]*domain.Task
 	nextID  int
-	storage storage.TaskStorage
+	storage *storage.FileStorage[domain.Task]
 	mu      sync.Mutex
 }
 
-func NewTaskService(storage storage.TaskStorage) (*TaskService, error) {
+func NewTaskService() (*TaskService, error) {
+	storagePath := os.Getenv("tmp_dir") + "/tasks.json"
+	storage := storage.NewFileStorage[domain.Task](storagePath)
+
 	tasks, err := storage.Load()
 	if err != nil {
 		return nil, err
@@ -43,14 +47,15 @@ func NewTaskService(storage storage.TaskStorage) (*TaskService, error) {
 	return s, nil
 }
 
-func (s *TaskService) AddTask(title string) (*domain.Task, error) {
+func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	newTask := &domain.Task{
-		ID:    s.nextID,
-		Title: title,
-		Done:  false,
+		ID:     s.nextID,
+		Title:  title,
+		Done:   false,
+		UserID: userID,
 	}
 
 	ve := validation.Validate(newTask)

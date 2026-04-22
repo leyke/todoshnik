@@ -8,11 +8,9 @@ import (
 var logPath string = "./tmp/api.log"
 
 func main() {
-	container := app.InitApp()
-	log, logFile := app.NewLogger(logPath)
+	container := app.InitApp(logPath)
+	defer container.LogFile.Close()
 
-	api := api.NewAPIHandler(container, log)
-	defer logFile.Close()
-
+	api := api.NewAPIHandler(container)
 	api.Run()
 }

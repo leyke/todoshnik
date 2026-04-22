@@ -5,8 +5,12 @@ import (
 	"todoshnik/internal/cli"
 )
 
+var logPath string = "./tmp/cli.log"
+
 func main() {
-	container := app.InitApp()
+	container := app.InitApp(logPath)
+	defer container.LogFile.Close()
+
 	cli := cli.NewCLIHandler(container.TaskService)
 	cli.Run()
 }

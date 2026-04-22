@@ -36,7 +36,7 @@ func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	task, err := api.service.AddTask(requestDto.Title)
+	task, err := api.service.AddTask(requestDto.Title,0)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

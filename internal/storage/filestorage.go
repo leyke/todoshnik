@@ -3,38 +3,37 @@ package storage
 import (
 	"encoding/json"
 	"os"
-	"todoshnik/internal/domain"
 )
 
-type FileStorage struct {
+type FileStorage[T any] struct {
 	filename string
 }
 
-func NewFileStorage(filename string) *FileStorage {
-	return &FileStorage{
+func NewFileStorage[T any](filename string) *FileStorage[T] {
+	return &FileStorage[T]{
 		filename: filename,
 	}
 }
 
-func (fs *FileStorage) Save(tasks map[int]*domain.Task) error {
-	data, err := json.MarshalIndent(tasks, "", "  ")
+func (fs *FileStorage[T]) Save(data map[int]*T) error {
+	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(fs.filename, data, 0644)
+	return os.WriteFile(fs.filename, jsonData, 0644)
 }
 
-func (fs *FileStorage) Load() (map[int]*domain.Task, error) {
+func (fs *FileStorage[T]) Load() (map[int]*T, error) {
 	data, err := os.ReadFile(fs.filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return make(map[int]*domain.Task), nil
+			return make(map[int]*T), nil
 		}
 		return nil, err
 	}
 
-	tasks := make(map[int]*domain.Task)
-	err = json.Unmarshal(data, &tasks)
-	return tasks, err
+	result := make(map[int]*T)
+	err = json.Unmarshal(data, &result)
+	return result, err
 }
