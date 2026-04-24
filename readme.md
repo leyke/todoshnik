@@ -11,3 +11,7 @@
 ### АПИ
 Запуск `go run cmd/api/main.go`  
 [OpenApi спецификция](https://github.com/leyke/todoshnik/blob/main/docs/openapi/openapi.yaml)
+
+### TG Bot
+Запуск `go run cmd/tg_bot/main.go`  
+[@todoshnik_bot](https://t.me/todoshnik_bot)

@@ -46,7 +46,7 @@ func NewUserService() (*UserService, error) {
 	return s, nil
 }
 
-func (s *UserService) AddUser(name string, telegramID int) (*domain.User, error) {
+func (s *UserService) AddUser(name string, telegramID int64) (*domain.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -126,4 +126,14 @@ func (s *UserService) GetUser(userId int) (*domain.User, error) {
 		return nil, apperrors.ErrNotFound
 	}
 	return user, nil
+}
+
+func (s *UserService) GetUserByTgId(userTgId int64) (*domain.User, error) {
+	for _, user := range s.users {
+		if user.TelegramID == userTgId {
+			return user, nil
+		}
+	}
+
+	return nil, apperrors.ErrNotFound
 }

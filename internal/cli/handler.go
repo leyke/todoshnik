@@ -33,7 +33,7 @@ func (cli *CLIHandler) Run() {
 	switch command {
 	case "add":
 		newTitle := os.Args[2]
-		task, err := cli.service.AddTask(newTitle, 0)
+		task, err := cli.service.AddTask(newTitle, nil)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break
@@ -44,7 +44,7 @@ func (cli *CLIHandler) Run() {
 		status := listCmd.String("status", "", "Фильтр по статусу: completed или pending")
 		listCmd.Parse(os.Args[2:])
 
-		tasks := cli.service.ListTasks(*status)
+		tasks := cli.service.ListTasks(*status, nil)
 		if len(tasks) == 0 {
 			fmt.Println("Список задач пуст")
 			break
@@ -57,7 +57,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		_, err = cli.service.MarkDone(taskId)
+		_, err = cli.service.MarkDone(taskId, nil)
 		if err != nil {
 			fmt.Printf("Ошибка пометки задачи как выполненной: %v\n", err)
 		}
@@ -67,7 +67,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		err = cli.service.DeleteTask(taskId)
+		err = cli.service.DeleteTask(taskId, nil)
 		if err != nil {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 		}

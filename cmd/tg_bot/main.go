@@ -20,7 +20,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	botapi.Debug = true
+	botapi.Debug = os.Getenv("telegram_debug") == "1"
 
 	bh := bot.NewBotHandler(container, botapi, container.Logger)
 	bh.Run()

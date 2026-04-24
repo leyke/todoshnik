@@ -47,7 +47,7 @@ func NewTaskService() (*TaskService, error) {
 	return s, nil
 }
 
-func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {
+func (s *TaskService) AddTask(title string, userID *int) (*domain.Task, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -55,7 +55,7 @@ func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {
 		ID:     s.nextID,
 		Title:  title,
 		Done:   false,
-		UserID: userID,
+		UserID: *userID,
 	}
 
 	ve := validation.Validate(newTask)
@@ -74,32 +74,43 @@ func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {
 	return newTask, nil
 }
 
-func (s *TaskService) ListTasks(method string) []*domain.Task {
-	keys := make([]int, 0, len(s.tasks))
-	for k := range s.tasks {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
+func (s *TaskService) ListTasks(method string, userId *int) []*domain.Task {
+	tasks := make([]*domain.Task, 0)
 
-	result := make([]*domain.Task, 0, len(keys))
-	for _, k := range keys {
-		if method == "pending" && s.tasks[k].Done {
+	for _, task := range s.tasks {
+		if userId != nil && task.UserID != *userId {
 			continue
 		}
 
-		if method == "completed" && !s.tasks[k].Done {
-			continue
+		// Фильтрация по методу
+		switch method {
+		case "pending":
+			if task.Done {
+				continue
+			}
+		case "completed":
+			if !task.Done {
+				continue
+			}
 		}
 
-		result = append(result, s.tasks[k])
+		tasks = append(tasks, task)
 	}
-	return result
+
+	sort.Slice(tasks, func(i, j int) bool {
+		if tasks[i].Done != tasks[j].Done {
+			return tasks[i].Done
+		}
+		return tasks[i].ID < tasks[j].ID
+	})
+
+	return tasks
 }
 
-func (s *TaskService) UpdateTask(taskId int, title string, done bool) (*domain.Task, error) {
-	task, ok := s.tasks[taskId]
-	if !ok {
-		return nil, apperrors.ErrNotFound
+func (s *TaskService) UpdateTask(taskId int, title string, done bool, userId int) (*domain.Task, error) {
+	task, err := s.GetTask(taskId, &userId)
+	if err != nil {
+		return nil, err
 	}
 
 	prev := task
@@ -112,7 +123,7 @@ func (s *TaskService) UpdateTask(taskId int, title string, done bool) (*domain.T
 		return nil, apperrors.NewValidationErrorFromValidator(validateError.(validator.ValidationErrors))
 	}
 
-	err := s.storage.Save(s.tasks)
+	err = s.storage.Save(s.tasks)
 	if err != nil {
 		s.tasks[taskId] = prev
 		return nil, err
@@ -121,27 +132,25 @@ func (s *TaskService) UpdateTask(taskId int, title string, done bool) (*domain.T
 	return task, nil
 }
 
-func (s *TaskService) DeleteTask(taskId int) error {
-	_, ok := s.tasks[taskId]
-	if !ok {
-		return apperrors.ErrNotFound
+func (s *TaskService) DeleteTask(taskId int, userId *int) error {
+	_, err := s.GetTask(taskId, userId)
+	if err != nil {
+		return err
 	}
-
 	delete(s.tasks, taskId)
 
 	return s.storage.Save(s.tasks)
 }
 
-func (s *TaskService) MarkDone(taskId int) (*domain.Task, error) {
-	_, ok := s.tasks[taskId]
-	if !ok {
-		return nil, apperrors.ErrNotFound
+func (s *TaskService) MarkDone(taskId int, userId *int) (*domain.Task, error) {
+	task, err := s.GetTask(taskId, userId)
+	if err != nil {
+		return nil, err
 	}
 
-	task := s.tasks[taskId]
 	prev := task.Done
-	task.Done = true
-	err := s.storage.Save(s.tasks)
+	task.Done = !prev
+	err = s.storage.Save(s.tasks)
 	if err != nil {
 		task.Done = prev
 		return nil, err
@@ -150,10 +159,11 @@ func (s *TaskService) MarkDone(taskId int) (*domain.Task, error) {
 	return task, nil
 }
 
-func (s *TaskService) GetTask(taskId int) (*domain.Task, error) {
+func (s *TaskService) GetTask(taskId int, userId *int) (*domain.Task, error) {
 	task, ok := s.tasks[taskId]
-	if !ok {
+	if !ok || (userId != nil && task.UserID != *userId) {
 		return nil, apperrors.ErrNotFound
 	}
+
 	return task, nil
 }

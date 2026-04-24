@@ -25,7 +25,8 @@ func NewHandler(s *service.TaskService) *Handler {
 func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	method := params.Get("status")
-	tasks := api.service.ListTasks(method)
+	// TODO: userid из AuthMiddleware
+	tasks := api.service.ListTasks(method, nil)
 	fmt.Printf("Запрошены задачи\n")
 	response.WriteJSON(w, http.StatusOK, tasks)
 }
@@ -36,7 +37,8 @@ func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	task, err := api.service.AddTask(requestDto.Title,0)
+	// TODO: userid из AuthMiddleware
+	task, err := api.service.AddTask(requestDto.Title, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -57,7 +59,8 @@ func (api *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	task, err := api.service.UpdateTask(id, requestDto.Title, requestDto.Done)
+	// TODO: userid из AuthMiddleware
+	task, err := api.service.UpdateTask(id, requestDto.Title, requestDto.Done, 0)
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -77,8 +80,8 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
 		return
 	}
-
-	task, err := api.service.MarkDone(id)
+	// TODO: userid из AuthMiddleware
+	task, err := api.service.MarkDone(id, nil)
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -99,7 +102,8 @@ func (api *Handler) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := api.service.GetTask(id)
+	// TODO: userid из AuthMiddleware
+	task, err := api.service.GetTask(id, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -116,7 +120,8 @@ func (api *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = api.service.DeleteTask(id)
+	// TODO: userid из AuthMiddleware
+	err = api.service.DeleteTask(id, nil)
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
