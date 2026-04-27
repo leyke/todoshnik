@@ -36,6 +36,11 @@ func NewUserService() (*UserService, error) {
 }
 
 func (s *UserService) AddUser(name string, telegramID int64) (*domain.User, error) {
+	user, _ := s.repo.GetUserByTgId(telegramID)
+	if user != nil {
+		return user, nil
+	}
+
 	newUser := &domain.User{
 		Name:       name,
 		TelegramID: telegramID,
