@@ -88,7 +88,7 @@ func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageCo
 
 	switch callback.Command {
 	case tg.СommandTaskDone:
-		err := bh.TaskHandler.DoneTask(appUser.ID, callback.Payload["task_id"])
+		taskRowText, err := bh.TaskHandler.DoneTask(appUser.ID, callback.Payload["task_id"])
 		if err != nil {
 			if errors.Is(err, apperrors.ErrNotFound) {
 				msg.Text = err.Error()
@@ -97,14 +97,50 @@ func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageCo
 				fmt.Println(err.Error())
 				bh.logger.Println(err)
 			}
-		} else {
-			msg.Text = "Статус обновлен"
+			break
 		}
+		if taskRowText != "" {
+			bh.editTgMessage(query.Message.Chat.ID, query.Message.MessageID, taskRowText)
+		}
+
+		msg.Text = "Статус обновлен"
+	case tg.CommandTaskDelete:
+		err := bh.TaskHandler.DeleteTask(appUser.ID, callback.Payload["task_id"])
+		if err != nil {
+			if errors.Is(err, apperrors.ErrNotFound) {
+				msg.Text = err.Error()
+			} else {
+				msg.Text = "Возникла непредвиденная ошибка"
+				fmt.Println(err.Error())
+				bh.logger.Println(err)
+			}
+			break
+		}
+		fmt.Println(query)
+		msg.Text = "Задача удалена"
+		bh.deleteTgMessage(query.Message.Chat.ID, query.Message.MessageID)
 	default:
 		msg.Text = "Я хз что это такое, если бы я знал что это такое, я бы помог"
 	}
 
 	return &msg
+}
+
+func (bh *BotHandler) editTgMessage(chatID int64, messageID int, newText string) {
+	editMsg := tgbotapi.NewEditMessageText(
+		chatID,
+		messageID,
+		newText,
+	)
+	bh.bot.Send(editMsg)
+}
+
+func (bh *BotHandler) deleteTgMessage(chatID int64, messageID int) {
+	deleteMsg := tgbotapi.NewDeleteMessage(
+		chatID,
+		messageID,
+	)
+	bh.bot.Send(deleteMsg)
 }
 
 func (bh *BotHandler) handleCommand(update tgbotapi.Update) *tgbotapi.MessageConfig {

@@ -13,6 +13,10 @@ func getStatusButtonText(task domain.Task) string {
 	return constants.EmojiIsDone + " Готово"
 }
 
+func getDeleteButtonText() string {
+	return constants.EmojiDelete + " Забыть"
+}
+
 func getTaskRowText(task domain.Task) string {
 	emoji := constants.EmojiInProgress
 	if task.Done {

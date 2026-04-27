@@ -50,15 +50,31 @@ func (h Handler) SendTaskList(bot *tgbotapi.BotAPI, chatID int64, userID int, me
 	return messageCount
 }
 
-func (h Handler) DoneTask(userID int, id string) error {
+func (h Handler) DoneTask(userID int, id string) (string, error) {
+	taskID, err := strconv.Atoi(id)
+	if err != nil {
+		return "", err
+	}
+
+	changeErr := h.service.MarkDone(taskID, domain.AccessScope{UserID: userID})
+	if changeErr != nil {
+		return "", changeErr
+	}
+
+	task, _ := h.service.GetTask(taskID, domain.AccessScope{UserID: userID})
+
+	return getTaskRowText(*task), nil
+}
+
+func (h Handler) DeleteTask(userID int, id string) error {
 	taskID, err := strconv.Atoi(id)
 	if err != nil {
 		return err
 	}
 
-	changeErr := h.service.MarkDone(taskID, domain.AccessScope{UserID: userID})
-	if changeErr != nil {
-		return changeErr
+	deleteErr := h.service.DeleteTask(taskID, domain.AccessScope{UserID: userID})
+	if deleteErr != nil {
+		return deleteErr
 	}
 
 	return nil
@@ -74,17 +90,30 @@ func (h Handler) sendTask(bot *tgbotapi.BotAPI, chatID int64, task *domain.Task)
 	payload := map[string]string{
 		"task_id": strconv.Itoa(task.ID),
 	}
-	сallback, err := json.Marshal(tg.CallbackQuery{
+
+	сallbackDone, err := json.Marshal(tg.CallbackQuery{
 		Command: tg.СommandTaskDone,
 		Payload: payload,
 	})
+	сallbackDelete, err := json.Marshal(tg.CallbackQuery{
+		Command: tg.CommandTaskDelete,
+		Payload: payload,
+	})
+
 	if err != nil {
 		h.logger.Println("sendTask | Ошибка кодирования payloadData", err)
 		return false
 	}
+
+	// Кнопка снять/добавить галочку (выполнен или нет)
 	btns = append(btns, response.InlineKeyboardBtn{
 		Text:     getStatusButtonText(*task),
-		Callback: string(сallback),
+		Callback: string(сallbackDone),
+	})
+	// Кнопка удалить таск
+	btns = append(btns, response.InlineKeyboardBtn{
+		Text:     getDeleteButtonText(),
+		Callback: string(сallbackDelete),
 	})
 	msg.ReplyMarkup = response.NewKeyboard(btns)
 
