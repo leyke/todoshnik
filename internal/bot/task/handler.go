@@ -22,7 +22,7 @@ func NewHandler(s *service.TaskService, l *log.Logger) *Handler {
 }
 
 func (h Handler) AddTask(userID int, taskTitle string) (*domain.Task, error) {
-	task, err := h.service.AddTask(taskTitle, &userID)
+	task, err := h.service.AddTask(taskTitle, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,12 @@ func (h Handler) AddTask(userID int, taskTitle string) (*domain.Task, error) {
 }
 
 func (h Handler) SendTaskList(bot *tgbotapi.BotAPI, chatID int64, userID int, method string) int {
-	tasks := h.service.ListTasks(method, &userID)
+	filter := domain.TaskFilter{
+		Status: domain.TaskStatus(method),
+		Scope:  domain.AccessScope{UserID: userID},
+	}
+
+	tasks := h.service.ListTasks(filter)
 	if len(tasks) == 0 {
 		return 0
 	}
@@ -45,18 +50,18 @@ func (h Handler) SendTaskList(bot *tgbotapi.BotAPI, chatID int64, userID int, me
 	return messageCount
 }
 
-func (h Handler) DoneTask(userID int, id string) (*domain.Task, error) {
+func (h Handler) DoneTask(userID int, id string) error {
 	taskID, err := strconv.Atoi(id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	task, err := h.service.MarkDone(taskID, &userID)
-	if err != nil {
-		return nil, err
+	changeErr := h.service.MarkDone(taskID, domain.AccessScope{UserID: userID})
+	if changeErr != nil {
+		return changeErr
 	}
 
-	return task, nil
+	return nil
 }
 
 func (h Handler) sendTask(bot *tgbotapi.BotAPI, chatID int64, task *domain.Task) bool {

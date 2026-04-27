@@ -3,11 +3,11 @@ package service
 import (
 	"fmt"
 	"os"
-	"sort"
-	"sync"
 
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
+	repo "todoshnik/internal/repository/user"
+	repository "todoshnik/internal/repository/user"
 	"todoshnik/internal/storage"
 
 	"todoshnik/internal/validation"
@@ -16,42 +16,27 @@ import (
 )
 
 type UserService struct {
-	users   map[int]*domain.User
-	nextID  int
-	storage *storage.FileStorage[domain.User]
-	mu      sync.Mutex
+	repo repository.UserRepositoryInreface
 }
 
 func NewUserService() (*UserService, error) {
 	storagePath := os.Getenv("tmp_dir") + "/users.json"
 	storage := storage.NewFileStorage[domain.User](storagePath)
-	users, err := storage.Load()
+
+	repo, err := repo.NewUserFileRepository(storage)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &UserService{
-		users:   users,
-		storage: storage,
+		repo: repo,
 	}
-
-	maxID := 0
-	for _, users := range users {
-		if users.ID > maxID {
-			maxID = users.ID
-		}
-	}
-	s.nextID = maxID + 1
 
 	return s, nil
 }
 
 func (s *UserService) AddUser(name string, telegramID int64) (*domain.User, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	newUser := &domain.User{
-		ID:         s.nextID,
 		Name:       name,
 		TelegramID: telegramID,
 	}
@@ -62,33 +47,20 @@ func (s *UserService) AddUser(name string, telegramID int64) (*domain.User, erro
 		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
 	}
 
-	s.users[s.nextID] = newUser
-	s.nextID++
-
-	err := s.storage.Save(s.users)
+	user, err := s.repo.Create(newUser)
 	if err != nil {
 		return nil, err
 	}
-	return newUser, nil
+	return user, nil
 }
 
 func (s *UserService) ListUsers() []*domain.User {
-	keys := make([]int, 0, len(s.users))
-	for k := range s.users {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-
-	result := make([]*domain.User, 0, len(keys))
-	for _, k := range keys {
-		result = append(result, s.users[k])
-	}
-	return result
+	return s.repo.List()
 }
 
-func (s *UserService) UpdateUser(userId int, name string) (*domain.User, error) {
-	user, ok := s.users[userId]
-	if !ok {
+func (s *UserService) UpdateUser(userID int, name string) (*domain.User, error) {
+	user, errNotFound := s.GetUser(userID)
+	if errNotFound != nil {
 		return nil, apperrors.ErrNotFound
 	}
 
@@ -100,40 +72,34 @@ func (s *UserService) UpdateUser(userId int, name string) (*domain.User, error) 
 		return nil, apperrors.NewValidationErrorFromValidator(validateError.(validator.ValidationErrors))
 	}
 
-	err := s.storage.Save(s.users)
+	err := s.repo.Update(user)
 	if err != nil {
-		s.users[userId] = prev
 		return nil, err
 	}
-
 	return user, nil
 }
 
-func (s *UserService) DeleteUser(userId int) error {
-	_, ok := s.users[userId]
-	if !ok {
-		return apperrors.ErrNotFound
+func (s *UserService) DeleteUser(userID int) error {
+	user, err := s.GetUser(userID)
+	if err != nil {
+		return err
 	}
 
-	delete(s.users, userId)
-
-	return s.storage.Save(s.users)
+	return s.repo.Delete(user)
 }
 
-func (s *UserService) GetUser(userId int) (*domain.User, error) {
-	user, ok := s.users[userId]
-	if !ok {
-		return nil, apperrors.ErrNotFound
+func (s *UserService) GetUser(userID int) (*domain.User, error) {
+	user, err := s.repo.GetByID(userID)
+	if err != nil {
+		return nil, err
 	}
 	return user, nil
 }
 
-func (s *UserService) GetUserByTgId(userTgId int64) (*domain.User, error) {
-	for _, user := range s.users {
-		if user.TelegramID == userTgId {
-			return user, nil
-		}
+func (s *UserService) GetUserByTgId(userTgID int64) (*domain.User, error) {
+	user, err := s.repo.GetUserByTgId(userTgID)
+	if err != nil {
+		return nil, err
 	}
-
-	return nil, apperrors.ErrNotFound
+	return user, nil
 }

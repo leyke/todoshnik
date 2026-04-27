@@ -3,59 +3,41 @@ package service
 import (
 	"fmt"
 	"os"
-	"sort"
-	"sync"
 
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/storage"
-
 	"todoshnik/internal/validation"
+
+	repo "todoshnik/internal/repository/task"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type TaskService struct {
-	tasks   map[int]*domain.Task
-	nextID  int
-	storage *storage.FileStorage[domain.Task]
-	mu      sync.Mutex
+	repo repo.TaskRepositoryInreface
 }
 
 func NewTaskService() (*TaskService, error) {
 	storagePath := os.Getenv("tmp_dir") + "/tasks.json"
 	storage := storage.NewFileStorage[domain.Task](storagePath)
 
-	tasks, err := storage.Load()
+	repo, err := repo.NewTaskFileRepository(storage)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &TaskService{
-		tasks:   tasks,
-		storage: storage,
+		repo: repo,
 	}
-
-	maxID := 0
-	for _, task := range tasks {
-		if task.ID > maxID {
-			maxID = task.ID
-		}
-	}
-	s.nextID = maxID + 1
 
 	return s, nil
 }
 
-func (s *TaskService) AddTask(title string, userID *int) (*domain.Task, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {
 	newTask := &domain.Task{
-		ID:     s.nextID,
 		Title:  title,
-		Done:   false,
-		UserID: *userID,
+		UserID: userID,
 	}
 
 	ve := validation.Validate(newTask)
@@ -64,51 +46,19 @@ func (s *TaskService) AddTask(title string, userID *int) (*domain.Task, error) {
 		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
 	}
 
-	s.tasks[s.nextID] = newTask
-	s.nextID++
-
-	err := s.storage.Save(s.tasks)
+	task, err := s.repo.Create(newTask)
 	if err != nil {
 		return nil, err
 	}
-	return newTask, nil
+	return task, nil
 }
 
-func (s *TaskService) ListTasks(method string, userId *int) []*domain.Task {
-	tasks := make([]*domain.Task, 0)
-
-	for _, task := range s.tasks {
-		if userId != nil && task.UserID != *userId {
-			continue
-		}
-
-		// Фильтрация по методу
-		switch method {
-		case "pending":
-			if task.Done {
-				continue
-			}
-		case "completed":
-			if !task.Done {
-				continue
-			}
-		}
-
-		tasks = append(tasks, task)
-	}
-
-	sort.Slice(tasks, func(i, j int) bool {
-		if tasks[i].Done != tasks[j].Done {
-			return tasks[i].Done
-		}
-		return tasks[i].ID < tasks[j].ID
-	})
-
-	return tasks
+func (s *TaskService) ListTasks(filter domain.TaskFilter) []*domain.Task {
+	return s.repo.List(filter)
 }
 
-func (s *TaskService) UpdateTask(taskId int, title string, done bool, userId int) (*domain.Task, error) {
-	task, err := s.GetTask(taskId, &userId)
+func (s *TaskService) UpdateTask(taskId int, title string, done bool, scope domain.AccessScope) (*domain.Task, error) {
+	task, err := s.GetTask(taskId, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -123,47 +73,39 @@ func (s *TaskService) UpdateTask(taskId int, title string, done bool, userId int
 		return nil, apperrors.NewValidationErrorFromValidator(validateError.(validator.ValidationErrors))
 	}
 
-	err = s.storage.Save(s.tasks)
+	err = s.repo.Update(task)
 	if err != nil {
-		s.tasks[taskId] = prev
 		return nil, err
 	}
 
 	return task, nil
 }
 
-func (s *TaskService) DeleteTask(taskId int, userId *int) error {
-	_, err := s.GetTask(taskId, userId)
+func (s *TaskService) DeleteTask(taskId int, scope domain.AccessScope) error {
+	task, err := s.GetTask(taskId, scope)
 	if err != nil {
 		return err
 	}
-	delete(s.tasks, taskId)
 
-	return s.storage.Save(s.tasks)
+	return s.repo.Delete(task)
 }
 
-func (s *TaskService) MarkDone(taskId int, userId *int) (*domain.Task, error) {
-	task, err := s.GetTask(taskId, userId)
+func (s *TaskService) MarkDone(taskId int, scope domain.AccessScope) error {
+	task, err := s.GetTask(taskId, scope)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	prev := task.Done
-	task.Done = !prev
-	err = s.storage.Save(s.tasks)
+	task.Done = !task.Done
+	err = s.repo.Update(task)
 	if err != nil {
-		task.Done = prev
-		return nil, err
+		return err
 	}
 
-	return task, nil
+	return nil
 }
 
-func (s *TaskService) GetTask(taskId int, userId *int) (*domain.Task, error) {
-	task, ok := s.tasks[taskId]
-	if !ok || (userId != nil && task.UserID != *userId) {
-		return nil, apperrors.ErrNotFound
-	}
-
-	return task, nil
+func (s *TaskService) GetTask(taskId int, scope domain.AccessScope) (*domain.Task, error) {
+	task, err := s.repo.GetByID(taskId, scope)
+	return task, err
 }

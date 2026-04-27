@@ -9,8 +9,8 @@ type FileStorage[T any] struct {
 	filename string
 }
 
-func NewFileStorage[T any](filename string) *FileStorage[T] {
-	return &FileStorage[T]{
+func NewFileStorage[T any](filename string) FileStorage[T] {
+	return FileStorage[T]{
 		filename: filename,
 	}
 }

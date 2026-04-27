@@ -88,7 +88,7 @@ func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageCo
 
 	switch callback.Command {
 	case tg.СommandTaskDone:
-		_, err := bh.TaskHandler.DoneTask(appUser.ID, callback.Payload["task_id"])
+		err := bh.TaskHandler.DoneTask(appUser.ID, callback.Payload["task_id"])
 		if err != nil {
 			if errors.Is(err, apperrors.ErrNotFound) {
 				msg.Text = err.Error()
