@@ -9,10 +9,11 @@ import (
 )
 
 type App struct {
-	TaskService *service.TaskService
-	UserService *service.UserService
-	Logger      *log.Logger
-	LogFile     *os.File
+	TaskService  *service.TaskService
+	UserService  *service.UserService
+	TokenService *service.AccessTokenService
+	Logger       *log.Logger
+	LogFile      *os.File
 }
 
 func InitApp(logPath string) *App {
@@ -31,12 +32,19 @@ func InitApp(logPath string) *App {
 	if err != nil {
 		panic(err)
 	}
+
+	ats, err := service.NewAccessTokenService()
+	if err != nil {
+		panic(err)
+	}
+
 	log, logFile := NewLogger(logPath)
 
 	return &App{
-		TaskService: ts,
-		UserService: us,
-		Logger:      log,
-		LogFile:     logFile,
+		TaskService:  ts,
+		UserService:  us,
+		TokenService: ats,
+		Logger:       log,
+		LogFile:      logFile,
 	}
 }

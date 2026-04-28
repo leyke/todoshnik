@@ -12,10 +12,16 @@ func (api *APIHandler) Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logging(api.logger))
 	r.Use(chimiddleware.Recoverer)
+
+	// Auth
+
 	// Tasks
 	r.Route("/tasks", func(r chi.Router) {
+		r.Use(middleware.Auth(api.authHandler))
+
 		r.Get("/", api.taskHandler.List)
 		r.Post("/", api.taskHandler.Create)
+
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", api.taskHandler.View)      // GET //tasks/123
 			r.Put("/", api.taskHandler.Update)    // PUT /tasks/123

@@ -11,11 +11,15 @@ import (
 )
 
 type CLIHandler struct {
-	service *service.TaskService
+	service      *service.TaskService
+	tokenService *service.AccessTokenService
 }
 
-func NewCLIHandler(s *service.TaskService) *CLIHandler {
-	return &CLIHandler{service: s}
+func NewCLIHandler(s *service.TaskService, ts *service.AccessTokenService) *CLIHandler {
+	return &CLIHandler{
+		service:      s,
+		tokenService: ts,
+	}
 }
 
 func (cli *CLIHandler) Run() {
@@ -81,6 +85,10 @@ func (cli *CLIHandler) Run() {
 		if err != nil {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 		}
+
+	case "clear-tokens":
+		deleted := cli.tokenService.ClearExpiredTokens()
+		fmt.Printf("Удалены токены: %v\n", deleted)
 	default:
 		fmt.Printf("Неизвестная команда: %s\n", command)
 	}

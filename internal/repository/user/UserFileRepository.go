@@ -11,40 +11,40 @@ import (
 type UserFileRepository struct {
 	mu      sync.RWMutex
 	storage storage.FileStorage[domain.User]
-	users   map[int]*domain.User
+	items   map[int]*domain.User
 	nextID  int
 }
 
 func NewUserFileRepository(storage storage.FileStorage[domain.User]) (*UserFileRepository, error) {
-	tasks, err := storage.Load()
+	items, err := storage.Load()
 	if err != nil {
 		return nil, err
 	}
 
 	maxID := 0
-	for _, task := range tasks {
-		if task.ID > maxID {
-			maxID = task.ID
+	for _, item := range items {
+		if item.ID > maxID {
+			maxID = item.ID
 		}
 	}
 
 	return &UserFileRepository{
 		storage: storage,
-		users:   tasks,
+		items:   items,
 		nextID:  maxID + 1,
 	}, nil
 }
 
 func (repo *UserFileRepository) List() []*domain.User {
-	keys := make([]int, 0, len(repo.users))
-	for k := range repo.users {
+	keys := make([]int, 0, len(repo.items))
+	for k := range repo.items {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 
 	result := make([]*domain.User, 0, len(keys))
 	for _, k := range keys {
-		result = append(result, repo.users[k])
+		result = append(result, repo.items[k])
 	}
 	return result
 }
@@ -53,7 +53,7 @@ func (repo *UserFileRepository) GetByID(id int) (*domain.User, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	user, ok := repo.users[id]
+	user, ok := repo.items[id]
 	if !ok {
 		return nil, apperrors.ErrNotFound
 	}
@@ -62,7 +62,7 @@ func (repo *UserFileRepository) GetByID(id int) (*domain.User, error) {
 }
 
 func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, error) {
-	for _, user := range repo.users {
+	for _, user := range repo.items {
 		if user.TelegramID == userTgId {
 			return user, nil
 		}
@@ -78,9 +78,9 @@ func (repo *UserFileRepository) Create(user *domain.User) (*domain.User, error) 
 	user.ID = repo.nextID
 	repo.nextID++
 
-	repo.users[user.ID] = user
+	repo.items[user.ID] = user
 
-	err := repo.storage.Save(repo.users)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +92,12 @@ func (repo *UserFileRepository) Update(user *domain.User) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	prev := repo.users[user.ID]
-	repo.users[user.ID] = user
+	prev := repo.items[user.ID]
+	repo.items[user.ID] = user
 
-	err := repo.storage.Save(repo.users)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
-		repo.users[user.ID] = prev
+		repo.items[user.ID] = prev
 		return err
 	}
 
@@ -109,11 +109,11 @@ func (repo *UserFileRepository) Delete(user *domain.User) error {
 	defer repo.mu.Unlock()
 
 	prev := user
-	delete(repo.users, user.ID)
+	delete(repo.items, user.ID)
 
-	err := repo.storage.Save(repo.users)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
-		repo.users[user.ID] = prev
+		repo.items[user.ID] = prev
 		return err
 	}
 

@@ -11,6 +11,6 @@ func main() {
 	container := app.InitApp(logPath)
 	defer container.LogFile.Close()
 
-	cli := cli.NewCLIHandler(container.TaskService)
+	cli := cli.NewCLIHandler(container.TaskService, container.TokenService)
 	cli.Run()
 }

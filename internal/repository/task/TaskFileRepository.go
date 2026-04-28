@@ -11,18 +11,18 @@ import (
 type TaskFileRepository struct {
 	mu      sync.RWMutex
 	storage storage.FileStorage[domain.Task]
-	tasks   map[int]*domain.Task
+	items   map[int]*domain.Task
 	nextID  int
 }
 
 func NewTaskFileRepository(storage storage.FileStorage[domain.Task]) (*TaskFileRepository, error) {
-	tasks, err := storage.Load()
+	items, err := storage.Load()
 	if err != nil {
 		return nil, err
 	}
 
 	maxID := 0
-	for _, task := range tasks {
+	for _, task := range items {
 		if task.ID > maxID {
 			maxID = task.ID
 		}
@@ -30,7 +30,7 @@ func NewTaskFileRepository(storage storage.FileStorage[domain.Task]) (*TaskFileR
 
 	return &TaskFileRepository{
 		storage: storage,
-		tasks:   tasks,
+		items:   items,
 		nextID:  maxID + 1,
 	}, nil
 }
@@ -39,9 +39,9 @@ func (repo *TaskFileRepository) List(filter domain.TaskFilter) []*domain.Task {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	tasks := make([]*domain.Task, 0)
+	items := make([]*domain.Task, 0)
 
-	for _, task := range repo.tasks {
+	for _, task := range repo.items {
 		if !filter.Scope.IsAdmin && task.UserID != filter.Scope.UserID {
 			continue
 		}
@@ -58,24 +58,24 @@ func (repo *TaskFileRepository) List(filter domain.TaskFilter) []*domain.Task {
 			}
 		}
 
-		tasks = append(tasks, task)
+		items = append(items, task)
 	}
 
-	sort.Slice(tasks, func(i, j int) bool {
-		if tasks[i].Done != tasks[j].Done {
-			return tasks[i].Done
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Done != items[j].Done {
+			return items[i].Done
 		}
-		return tasks[i].ID < tasks[j].ID
+		return items[i].ID < items[j].ID
 	})
 
-	return tasks
+	return items
 }
 
 func (repo *TaskFileRepository) GetByID(id int, scope domain.AccessScope) (*domain.Task, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	task, ok := repo.tasks[id]
+	task, ok := repo.items[id]
 	if !ok || (!scope.IsAdmin && scope.UserID != task.UserID) {
 		return nil, apperror.ErrNotFound
 	}
@@ -90,9 +90,9 @@ func (repo *TaskFileRepository) Create(task *domain.Task) (*domain.Task, error) 
 	task.ID = repo.nextID
 	repo.nextID++
 
-	repo.tasks[task.ID] = task
+	repo.items[task.ID] = task
 
-	err := repo.storage.Save(repo.tasks)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +104,12 @@ func (repo *TaskFileRepository) Update(task *domain.Task) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	prev := repo.tasks[task.ID]
-	repo.tasks[task.ID] = task
+	prev := repo.items[task.ID]
+	repo.items[task.ID] = task
 
-	err := repo.storage.Save(repo.tasks)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
-		repo.tasks[task.ID] = prev
+		repo.items[task.ID] = prev
 		return err
 	}
 
@@ -121,11 +121,11 @@ func (repo *TaskFileRepository) Delete(task *domain.Task) error {
 	defer repo.mu.Unlock()
 
 	prev := task
-	delete(repo.tasks, task.ID)
+	delete(repo.items, task.ID)
 
-	err := repo.storage.Save(repo.tasks)
+	err := repo.storage.Save(repo.items)
 	if err != nil {
-		repo.tasks[task.ID] = prev
+		repo.items[task.ID] = prev
 		return err
 	}
 
