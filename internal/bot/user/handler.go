@@ -16,7 +16,7 @@ func NewHandler(s *service.UserService) *Handler {
 }
 
 func (uh Handler) AddUser(user *tgbotapi.User) {
-	uh.service.AddUser(user.UserName, user.ID)
+	uh.service.AddTgUser(user.UserName, user.ID)
 }
 
 func (uh Handler) GetAppUser(tgUser *tgbotapi.User) (*domain.User, error) {

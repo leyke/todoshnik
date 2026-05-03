@@ -11,6 +11,7 @@ import (
 var (
 	ErrNotFound    = errors.New("not found")
 	ErrNotValidate = errors.New("not validate")
+	ErrConflict    = errors.New("conflict")
 )
 
 type ValidationError struct {

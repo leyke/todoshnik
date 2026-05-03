@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"todoshnik/internal/auth"
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
 	repo "todoshnik/internal/repository/user"
@@ -35,7 +36,34 @@ func NewUserService() (*UserService, error) {
 	return s, nil
 }
 
-func (s *UserService) AddUser(name string, telegramID int64) (*domain.User, error) {
+func (s *UserService) AddUser(name string, login string, password string) (*domain.User, error) {
+	user, _ := s.repo.GetByLogin(login)
+	if user != nil {
+		return nil, apperrors.ErrConflict
+	}
+
+	passwordHash := auth.HashPassword(password)
+
+	newUser := &domain.User{
+		Name:         name,
+		Login:        login,
+		PasswordHash: passwordHash,
+	}
+
+	ve := validation.Validate(newUser)
+	if ve != nil {
+		fmt.Println(ve)
+		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
+	}
+
+	user, err := s.repo.Create(newUser)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *UserService) AddTgUser(name string, telegramID int64) (*domain.User, error) {
 	user, _ := s.repo.GetUserByTgId(telegramID)
 	if user != nil {
 		return user, nil
@@ -64,7 +92,7 @@ func (s *UserService) ListUsers() []*domain.User {
 }
 
 func (s *UserService) UpdateUser(userID int, name string) (*domain.User, error) {
-	user, errNotFound := s.GetUser(userID)
+	user, errNotFound := s.GetUser(userID, "")
 	if errNotFound != nil {
 		return nil, apperrors.ErrNotFound
 	}
@@ -85,7 +113,7 @@ func (s *UserService) UpdateUser(userID int, name string) (*domain.User, error) 
 }
 
 func (s *UserService) DeleteUser(userID int) error {
-	user, err := s.GetUser(userID)
+	user, err := s.GetUser(userID, "")
 	if err != nil {
 		return err
 	}
@@ -93,11 +121,20 @@ func (s *UserService) DeleteUser(userID int) error {
 	return s.repo.Delete(user)
 }
 
-func (s *UserService) GetUser(userID int) (*domain.User, error) {
-	user, err := s.repo.GetByID(userID)
-	if err != nil {
-		return nil, err
+func (s *UserService) GetUser(userID int, login string) (*domain.User, error) {
+	var user *domain.User
+	var ok bool
+
+	if login != "" {
+		user, ok = s.repo.GetByLogin(login)
+	} else if userID != 0 {
+		user, ok = s.repo.GetByID(userID)
 	}
+
+	if !ok {
+		return nil, apperrors.ErrNotFound
+	}
+
 	return user, nil
 }
 
@@ -106,5 +143,6 @@ func (s *UserService) GetUserByTgId(userTgID int64) (*domain.User, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return user, nil
 }

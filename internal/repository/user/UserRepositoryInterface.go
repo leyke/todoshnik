@@ -4,7 +4,8 @@ import "todoshnik/internal/domain"
 
 type UserRepositoryInreface interface {
 	List() []*domain.User
-	GetByID(id int) (*domain.User, error)
+	GetByID(id int) (*domain.User, bool)
+	GetByLogin(login string) (*domain.User, bool)
 	GetUserByTgId(id int64) (*domain.User, error)
 
 	Create(user *domain.User) (*domain.User, error)

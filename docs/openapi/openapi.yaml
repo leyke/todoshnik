@@ -4,6 +4,12 @@ info:
   description: API управления задачами в приложении "todoshnik".
   version: 1.0.0
 
+tags:
+  - name: auth
+    description: Аутентификация
+  - name: tasks
+    description: Управление задачами
+
 paths:
   /ping:
     get:
@@ -12,13 +18,62 @@ paths:
       description: Проверка работоспособности сервиса.
       responses:
         '200':
-          description: Service is alive.
+          description: Все хорошо
           content:
             text/plain:
               schema:
                 type: string
                 example: pong
+  /auth/sign-up:
+    post:
+      tags:
+        - auth
+      summary: Регистрация нового пользователя
+      description: Регистрация новой учетной записи пользователя с логином, именем и паролем.
+      operationId: signUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '200':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Неверное тело запроса
+        '409':
+          description: Пользователь с таким логином уже существует
 
+  /auth/sign-in:
+    post:
+      tags:
+        - auth
+      summary: Аутентификация пользователя
+      description: Аутентификация существующего пользователя с логином и паролем, возвращает токен доступа.
+      operationId: signIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: User successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Неверное формат запроса
+        '401':
+          description: Неверный логин или пароль
+ 
   /tasks:
     get:
       summary: Список задач
@@ -173,3 +228,45 @@ components:
           type: boolean
           description: Статус выполнения задачи.
           example: false
+    
+    SignUpRequest:
+      type: object
+      required:
+        - login
+        - name
+        - password
+      properties:
+        login:
+          type: string
+          description: Уникальный логин пользователя
+        name:
+          type: string
+          description: Отображаемое имя пользователя
+        password:
+          type: string
+          description: Пароль пользователя
+          format: password
+
+    SignInRequest:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          description: Логин пользователя
+        password:
+          type: string
+          description: Пароль пользователя
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: Унмкальный идентификатор пользователя
+        access_token:
+          type: string
+          description: Токен доступа для аутентификации в API

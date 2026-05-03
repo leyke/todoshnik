@@ -49,16 +49,25 @@ func (repo *UserFileRepository) List() []*domain.User {
 	return result
 }
 
-func (repo *UserFileRepository) GetByID(id int) (*domain.User, error) {
+func (repo *UserFileRepository) GetByID(id int) (*domain.User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	user, ok := repo.items[id]
-	if !ok {
-		return nil, apperrors.ErrNotFound
+	return user, ok
+}
+
+func (repo *UserFileRepository) GetByLogin(login string) (*domain.User, bool) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	for _, user := range repo.items {
+		if user.Login == login {
+			return user, true
+		}
 	}
 
-	return user, nil
+	return nil, false
 }
 
 func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, error) {
@@ -69,6 +78,18 @@ func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, err
 	}
 
 	return nil, apperrors.ErrNotFound
+}
+
+func (repo *UserFileRepository) GetIdByLogin(login string) (*domain.User, bool) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	for _, item := range repo.items {
+		if item.Login == login {
+			return item, true
+		}
+	}
+	return nil, false
 }
 
 func (repo *UserFileRepository) Create(user *domain.User) (*domain.User, error) {

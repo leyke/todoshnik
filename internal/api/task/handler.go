@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"todoshnik/internal/api/contextkeys"
 	"todoshnik/internal/api/dto"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/domain"
@@ -26,11 +27,12 @@ func NewHandler(s *service.TaskService) *Handler {
 func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	method := params.Get("status")
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
 	// TODO: userid из AuthMiddleware
 	tasks := api.service.ListTasks(domain.TaskFilter{
 		Status: domain.TaskStatus(method),
-		Scope:  domain.AccessScope{IsAdmin: true},
+		Scope:  domain.AccessScope{IsAdmin: false, UserID: userID},
 	})
 
 	fmt.Printf("Запрошены задачи\n")
@@ -40,16 +42,15 @@ func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var requestDto dto.CreateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
 
-	// TODO: userid из AuthMiddleware
-	userID, err := strconv.Atoi(requestDto.UserID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
 	task, err := api.service.AddTask(requestDto.Title, userID)
 	if err != nil {
@@ -69,11 +70,22 @@ func (api *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	// TODO: userid из AuthMiddleware
-	task, err := api.service.UpdateTask(id, requestDto.Title, requestDto.Done, domain.AccessScope{IsAdmin: true})
+
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
+	task, err := api.service.UpdateTask(
+		id,
+		requestDto.Title,
+		requestDto.Done,
+		domain.AccessScope{IsAdmin: false, UserID: userID},
+	)
+
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -94,8 +106,8 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: userid из AuthMiddleware
-	updateErr := api.service.MarkDone(id, domain.AccessScope{IsAdmin: true})
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
+	updateErr := api.service.MarkDone(id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if updateErr != nil {
 		if errors.Is(updateErr, apperrors.ErrNotFound) {
 			http.Error(w, updateErr.Error(), http.StatusNotFound)
@@ -116,8 +128,8 @@ func (api *Handler) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: userid из AuthMiddleware
-	task, err := api.service.GetTask(id, domain.AccessScope{IsAdmin: true})
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
+	task, err := api.service.GetTask(id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -134,8 +146,8 @@ func (api *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: userid из AuthMiddleware
-	err = api.service.DeleteTask(id, domain.AccessScope{IsAdmin: true})
+	userID := r.Context().Value(contextkeys.UserIDKey).(int)
+	err = api.service.DeleteTask(id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)

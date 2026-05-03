@@ -14,6 +14,10 @@ func (api *APIHandler) Router() http.Handler {
 	r.Use(chimiddleware.Recoverer)
 
 	// Auth
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/sign-in", api.authHandler.SignIn)
+		r.Post("/sign-up", api.authHandler.SignUp)
+	})
 
 	// Tasks
 	r.Route("/tasks", func(r chi.Router) {

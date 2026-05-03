@@ -36,7 +36,7 @@ func NewAccessTokenService() (*AccessTokenService, error) {
 	return s, nil
 }
 
-func (s *AccessTokenService) AddToken(user domain.User) (*domain.Token, error) {
+func (s *AccessTokenService) AddToken(user *domain.User) (*domain.Token, error) {
 	token, tokenError := auth.GenerateToken()
 	if tokenError != nil {
 		return nil, tokenError
@@ -64,8 +64,7 @@ func (s *AccessTokenService) AddToken(user domain.User) (*domain.Token, error) {
 }
 
 func (s *AccessTokenService) GetUserID(token string) (int, error) {
-	hash := auth.HashToken(token, os.Getenv("salt"))
-	userID := s.repo.GetUserIDByToken(hash)
+	userID := s.repo.GetUserIDByToken(token)
 
 	if userID == 0 {
 		return 0, apperrors.ErrNotFound

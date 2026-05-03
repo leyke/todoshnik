@@ -2,15 +2,14 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"os"
 	"strings"
+	ah "todoshnik/internal/api/auth"
 	"todoshnik/internal/api/contextkeys"
-	"todoshnik/internal/auth"
-	"todoshnik/internal/service"
 )
 
-func Auth(ats *service.AccessTokenService) func(http.Handler) http.Handler {
+func Auth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString, ok := extractTokenFromHeader(r)
@@ -19,14 +18,15 @@ func Auth(ats *service.AccessTokenService) func(http.Handler) http.Handler {
 				return
 			}
 
-			hash := auth.HashToken(tokenString, os.Getenv("salt"))
-			userID, err := ats.GetUserID(hash)
+			user, err := ah.ValidateToken(tokenString)
 			if err != nil {
+				fmt.Printf("Ошибка валидации токена: %v\n", err)
 				http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, user.ID)
+			ctx = context.WithValue(ctx, contextkeys.UserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
