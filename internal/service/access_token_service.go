@@ -21,7 +21,7 @@ type AccessTokenService struct {
 }
 
 func NewAccessTokenService() (*AccessTokenService, error) {
-	storagePath := os.Getenv("tmp_dir") + "/tokens.json"
+	storagePath := os.Getenv("TMP_DIR") + "/tokens.json"
 	storage := storage.NewFileStorage[domain.Token](storagePath)
 
 	repo, err := repository.NewAccessTokenFileRepository(storage)
@@ -42,9 +42,9 @@ func (s *AccessTokenService) AddToken(user *domain.User) (*domain.Token, error) 
 		return nil, tokenError
 	}
 
-	hash := auth.HashToken(token, os.Getenv("salt"))
+	hash := auth.HashToken(token, os.Getenv("SALT"))
 
-	tokenTtl, tokenError := strconv.Atoi(os.Getenv("token_ttl_days"))
+	tokenTtl, tokenError := strconv.Atoi(os.Getenv("TOKEN_TTL_DAYS"))
 	if tokenError != nil {
 		tokenTtl = DefaultTokenTtl
 	}

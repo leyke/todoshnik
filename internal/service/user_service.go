@@ -21,7 +21,7 @@ type UserService struct {
 }
 
 func NewUserService() (*UserService, error) {
-	storagePath := os.Getenv("tmp_dir") + "/users.json"
+	storagePath := os.Getenv("TMP_DIR") + "/users.json"
 	storage := storage.NewFileStorage[domain.User](storagePath)
 
 	repo, err := repo.NewUserFileRepository(storage)

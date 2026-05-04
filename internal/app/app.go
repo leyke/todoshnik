@@ -16,13 +16,11 @@ type App struct {
 	LogFile      *os.File
 }
 
-func InitApp(logPath string) *App {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+func InitApp(logFileName string) *App {
+	_ = godotenv.Load()
 
-	os.MkdirAll(os.Getenv("tmp_dir"), 0755)
+	tmpDir := os.Getenv("TMP_DIR")
+	os.MkdirAll(tmpDir, 0755)
 
 	ts, err := service.NewTaskService()
 	if err != nil {
@@ -38,7 +36,7 @@ func InitApp(logPath string) *App {
 		panic(err)
 	}
 
-	log, logFile := NewLogger(logPath)
+	log, logFile := NewLogger(tmpDir + logFileName)
 
 	return &App{
 		TaskService:  ts,

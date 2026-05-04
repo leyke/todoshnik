@@ -19,7 +19,7 @@ type TaskService struct {
 }
 
 func NewTaskService() (*TaskService, error) {
-	storagePath := os.Getenv("tmp_dir") + "/tasks.json"
+	storagePath := os.Getenv("TMP_DIR") + "/tasks.json"
 	storage := storage.NewFileStorage[domain.Task](storagePath)
 
 	repo, err := repo.NewTaskFileRepository(storage)

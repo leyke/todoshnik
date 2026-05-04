@@ -5,10 +5,10 @@ import (
 	"todoshnik/internal/app"
 )
 
-var logPath string = "./tmp/api.log"
+var logFile string = "/api.log"
 
 func main() {
-	container := app.InitApp(logPath)
+	container := app.InitApp(logFile)
 	defer container.LogFile.Close()
 
 	api := api.NewAPIHandler(container)

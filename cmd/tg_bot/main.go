@@ -9,18 +9,18 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var logPath string = "./tmp/tg.log"
+var logFile string = "/tg.log"
 
 func main() {
-	container := app.InitApp(logPath)
+	container := app.InitApp(logFile)
 	defer container.LogFile.Close()
 
-	botapi, err := tgbotapi.NewBotAPI(os.Getenv("telegram_token"))
+	botapi, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
 
-	botapi.Debug = os.Getenv("telegram_debug") == "1"
+	botapi.Debug = os.Getenv("TELEGRAM_DEBUG") == "1"
 
 	bh := bot.NewBotHandler(container, botapi, container.Logger)
 	bh.Run()

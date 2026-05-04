@@ -29,13 +29,12 @@ func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	method := params.Get("status")
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
-	// TODO: userid из AuthMiddleware
 	tasks := api.service.ListTasks(domain.TaskFilter{
 		Status: domain.TaskStatus(method),
 		Scope:  domain.AccessScope{IsAdmin: false, UserID: userID},
 	})
 
-	fmt.Printf("Запрошены задачи\n")
+	fmt.Printf("UserID: %d | Запрошены задачи\n", userID)
 	response.WriteJSON(w, http.StatusOK, tasks)
 }
 
@@ -57,7 +56,7 @@ func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("Создана задача: %v\n", task.ID)
+	fmt.Printf("UserID: %d | Создана задача: %v\n", userID, task.ID)
 	response.WriteJSON(w, http.StatusOK, task)
 
 }
@@ -95,7 +94,7 @@ func (api *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Обновлена задача: %v\n", task.ID)
+	fmt.Printf("UserID: %d | Обновлена задача: %v\n", userID, task.ID)
 	response.WriteJSON(w, http.StatusOK, task)
 }
 
@@ -117,7 +116,7 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Отмечена как выполненная задача: %v\n", id)
+	fmt.Printf("UserID: %d | Отмечена как выполненная задача: %v\n", userID, id)
 	response.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
@@ -135,7 +134,7 @@ func (api *Handler) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Просмотрена задача: %v\n", task.ID)
+	fmt.Printf("UserID: %d | Просмотрена задача: %v\n", userID, task.ID)
 	response.WriteJSON(w, http.StatusCreated, task)
 }
 
@@ -157,6 +156,6 @@ func (api *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Удалена задача: %v\n", id)
+	fmt.Printf("UserID: %d | Удалена задача: %v\n", userID, id)
 	response.WriteJSON(w, http.StatusNoContent, nil)
 }

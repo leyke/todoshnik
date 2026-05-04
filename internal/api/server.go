@@ -29,7 +29,7 @@ func (api *APIHandler) Run() {
 	fmt.Printf("Hello\n")
 	r := api.Router()
 
-	err := http.ListenAndServe(os.Getenv("host")+":"+os.Getenv("port"), r)
+	err := http.ListenAndServe(":"+os.Getenv("API_PORT"), r)
 	if err != nil {
 		fmt.Println("Error: setting up server")
 	}
