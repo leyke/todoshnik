@@ -2,14 +2,11 @@ package service
 
 import (
 	"fmt"
-	"os"
 
 	"todoshnik/internal/auth"
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
-	repo "todoshnik/internal/repository/user"
 	repository "todoshnik/internal/repository/user"
-	"todoshnik/internal/storage"
 
 	"todoshnik/internal/validation"
 
@@ -17,23 +14,13 @@ import (
 )
 
 type UserService struct {
-	repo repository.UserRepositoryInreface
+	repo repository.UserRepositoryInterface
 }
 
-func NewUserService() (*UserService, error) {
-	storagePath := os.Getenv("TMP_DIR") + "/users.json"
-	storage := storage.NewFileStorage[domain.User](storagePath)
-
-	repo, err := repo.NewUserFileRepository(storage)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &UserService{
+func NewUserService(repo repository.UserRepositoryInterface) *UserService {
+	return &UserService{
 		repo: repo,
 	}
-
-	return s, nil
 }
 
 func (s *UserService) AddUser(name string, login string, password string) (*domain.User, error) {
@@ -139,9 +126,9 @@ func (s *UserService) GetUser(userID int, login string) (*domain.User, error) {
 }
 
 func (s *UserService) GetUserByTgId(userTgID int64) (*domain.User, error) {
-	user, err := s.repo.GetUserByTgId(userTgID)
-	if err != nil {
-		return nil, err
+	user, ok := s.repo.GetUserByTgId(userTgID)
+	if !ok {
+		return nil, apperrors.ErrNotFound
 	}
 
 	return user, nil

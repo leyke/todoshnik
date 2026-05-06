@@ -5,10 +5,10 @@ import (
 	"todoshnik/internal/cli"
 )
 
-var logFile string = "/cli.log"
+var logFileName string = "/cli.log"
 
 func main() {
-	container := app.InitApp(logFile)
+	container := app.InitApp(logFileName)
 	defer container.LogFile.Close()
 
 	cli := cli.NewCLIHandler(container.TaskService, container.TokenService)

@@ -1,0 +1,13 @@
+[
+  {
+    "name": "tododb",
+    "type": "postgresql",
+    "host": "localhost",
+    "port": 5432,
+    "username": "todouser",
+    "password": "",
+    "database": "tododb",
+    "scope": "project",
+    "id": "5eda91a8-8b14-4a28-892b-c8617b6f6c48"
+  }
+]

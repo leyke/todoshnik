@@ -9,7 +9,6 @@ import (
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
 	repository "todoshnik/internal/repository/access_token"
-	"todoshnik/internal/storage"
 )
 
 const (
@@ -20,20 +19,10 @@ type AccessTokenService struct {
 	repo repository.AccessTokenRepositoryInterface
 }
 
-func NewAccessTokenService() (*AccessTokenService, error) {
-	storagePath := os.Getenv("TMP_DIR") + "/tokens.json"
-	storage := storage.NewFileStorage[domain.Token](storagePath)
-
-	repo, err := repository.NewAccessTokenFileRepository(storage)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &AccessTokenService{
+func NewAccessTokenService(repo repository.AccessTokenRepositoryInterface) *AccessTokenService {
+	return &AccessTokenService{
 		repo: repo,
 	}
-
-	return s, nil
 }
 
 func (s *AccessTokenService) AddToken(user *domain.User) (*domain.Token, error) {

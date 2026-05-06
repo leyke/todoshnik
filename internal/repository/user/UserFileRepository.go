@@ -4,7 +4,6 @@ import (
 	"sort"
 	"sync"
 	"todoshnik/internal/domain"
-	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/storage"
 )
 
@@ -70,25 +69,13 @@ func (repo *UserFileRepository) GetByLogin(login string) (*domain.User, bool) {
 	return nil, false
 }
 
-func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, error) {
+func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, bool) {
 	for _, user := range repo.items {
 		if user.TelegramID == userTgId {
-			return user, nil
+			return user, true
 		}
 	}
 
-	return nil, apperrors.ErrNotFound
-}
-
-func (repo *UserFileRepository) GetIdByLogin(login string) (*domain.User, bool) {
-	repo.mu.RLock()
-	defer repo.mu.RUnlock()
-
-	for _, item := range repo.items {
-		if item.Login == login {
-			return item, true
-		}
-	}
 	return nil, false
 }
 

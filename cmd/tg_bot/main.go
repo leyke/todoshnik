@@ -9,10 +9,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var logFile string = "/tg.log"
+var logFileName string = "/tg.log"
 
 func main() {
-	container := app.InitApp(logFile)
+	container := app.InitApp(logFileName)
 	defer container.LogFile.Close()
 
 	botapi, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))

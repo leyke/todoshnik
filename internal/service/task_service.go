@@ -2,36 +2,24 @@ package service
 
 import (
 	"fmt"
-	"os"
 
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
-	"todoshnik/internal/storage"
 	"todoshnik/internal/validation"
 
-	repo "todoshnik/internal/repository/task"
+	repository "todoshnik/internal/repository/task"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type TaskService struct {
-	repo repo.TaskRepositoryInreface
+	repo repository.TaskRepositoryInreface
 }
 
-func NewTaskService() (*TaskService, error) {
-	storagePath := os.Getenv("TMP_DIR") + "/tasks.json"
-	storage := storage.NewFileStorage[domain.Task](storagePath)
-
-	repo, err := repo.NewTaskFileRepository(storage)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &TaskService{
+func NewTaskService(repo repository.TaskRepositoryInreface) *TaskService {
+	return &TaskService{
 		repo: repo,
 	}
-
-	return s, nil
 }
 
 func (s *TaskService) AddTask(title string, userID int) (*domain.Task, error) {

@@ -3,6 +3,10 @@ package app
 import (
 	"log"
 	"os"
+	"todoshnik/internal/infrastructure/db"
+	tokenrepo "todoshnik/internal/repository/access_token"
+	taskrepo "todoshnik/internal/repository/task"
+	userrepo "todoshnik/internal/repository/user"
 	"todoshnik/internal/service"
 
 	"github.com/joho/godotenv"
@@ -22,26 +26,22 @@ func InitApp(logFileName string) *App {
 	tmpDir := os.Getenv("TMP_DIR")
 	os.MkdirAll(tmpDir, 0755)
 
-	ts, err := service.NewTaskService()
-	if err != nil {
-		panic(err)
-	}
-	us, err := service.NewUserService()
-	if err != nil {
-		panic(err)
-	}
-
-	ats, err := service.NewAccessTokenService()
-	if err != nil {
-		panic(err)
-	}
-
 	log, logFile := NewLogger(tmpDir + logFileName)
 
+	dataBase, err := db.NewGormDb()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Репозитории
+	taskRepo := taskrepo.NewTaskDbRepository(dataBase)
+	userRepo := userrepo.NewUserDbRepository(dataBase)
+	tokenRepo := tokenrepo.NewAccessTokenDbRepository(dataBase)
+
 	return &App{
-		TaskService:  ts,
-		UserService:  us,
-		TokenService: ats,
+		TaskService:  service.NewTaskService(taskRepo),
+		UserService:  service.NewUserService(userRepo),
+		TokenService: service.NewAccessTokenService(tokenRepo),
 		Logger:       log,
 		LogFile:      logFile,
 	}
