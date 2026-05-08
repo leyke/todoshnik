@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 	"todoshnik/internal/bot/tg"
@@ -26,14 +27,18 @@ func NewStateStorage(rdb *redis.Client) *StateStorage {
 
 func (ss *StateStorage) Set(ctx context.Context, userID int64, command tg.Command, state tg.State) error {
 	key := getKey(userID)
+	fmt.Println(key)
 
-	ss.rdb.HSet(ctx, key,
-		"command", command,
-		"state", state,
-	)
-
+	err := ss.rdb.HSet(ctx, key,
+		"command", string(command),
+		"state", string(state),
+	).Err()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	// запоминаем команду на час
-	err := ss.rdb.Expire(ctx, key, 1*time.Hour).Err()
+	err = ss.rdb.Expire(ctx, key, 1*time.Hour).Err()
 	if err != nil {
 		return err
 	}
@@ -42,22 +47,25 @@ func (ss *StateStorage) Set(ctx context.Context, userID int64, command tg.Comman
 }
 
 func (ss *StateStorage) Get(ctx context.Context, userID int64) (*UserState, bool) {
-	data, err := ss.rdb.HGetAll(ctx, getKey(userID)).Result()
+	key := getKey(userID)
+	fmt.Println(key)
+	data, err := ss.rdb.HGetAll(ctx, key).Result()
 	if err != nil {
 		return nil, false
 	}
-
-	// Проверяем, существует ли пользователь
+	fmt.Println(data)
 	if len(data) == 0 {
 		return nil, false
 	}
 
-	// Создаем структуру и заполняем
-	us := &UserState{}
-	if command, ok := data["command"]; ok {
-		us.Command = tg.Command(command)
+	us := &UserState{
+		State: tg.StateIdale,
+	}
+	command, ok := data["command"]
+	if !ok {
 		return nil, false
 	}
+	us.Command = tg.Command(command)
 
 	if state, ok := data["state"]; ok {
 		us.State = tg.State(state)

@@ -24,7 +24,9 @@ func NewHandler(api *client.ApiClient, l *log.Logger) *Handler {
 }
 
 func (h Handler) AddTask(ctx context.Context, taskTitle string) (*domain.Task, error) {
-	response, err := h.api.Post(ctx, "/tasks", nil)
+	response, err := h.api.Post(ctx, "/tasks", CreateTaskRequest{
+		Title: taskTitle,
+	})
 	if err != nil {
 		return nil, err
 	}
