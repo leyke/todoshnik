@@ -1,43 +1,66 @@
 package task
 
 import (
+	"context"
 	"encoding/json"
 	"log"
+	"net/url"
 	"strconv"
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
+	"todoshnik/internal/client"
 	"todoshnik/internal/domain"
-	"todoshnik/internal/service"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Handler struct {
-	service *service.TaskService
-	logger  *log.Logger
+	api    *client.ApiClient
+	logger *log.Logger
 }
 
-func NewHandler(s *service.TaskService, l *log.Logger) *Handler {
-	return &Handler{service: s, logger: l}
+func NewHandler(api *client.ApiClient, l *log.Logger) *Handler {
+	return &Handler{api: api, logger: l}
 }
 
-func (h Handler) AddTask(userID int, taskTitle string) (*domain.Task, error) {
-	task, err := h.service.AddTask(taskTitle, userID)
+func (h Handler) AddTask(ctx context.Context, taskTitle string) (*domain.Task, error) {
+	response, err := h.api.Post(ctx, "/tasks", nil)
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
+	var task *domain.Task
+
+	err = json.NewDecoder(response.Body).Decode(&task)
+	if err != nil {
+		return nil, err
+	}
+
 	return task, nil
 }
 
-func (h Handler) SendTaskList(bot *tgbotapi.BotAPI, chatID int64, userID int, method string) int {
-	filter := domain.TaskFilter{
-		Status: domain.TaskStatus(method),
-		Scope:  domain.AccessScope{UserID: userID},
+func (h Handler) SendTaskList(ctx context.Context, bot *tgbotapi.BotAPI, chatID int64, status string) (int, error) {
+	params := url.Values{}
+	if status != "" {
+		params.Add("status", status)
 	}
 
-	tasks := h.service.ListTasks(filter)
+	response, err := h.api.Get(ctx, "/tasks", params)
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+
+	var tasks []*domain.Task
+
+	err = json.NewDecoder(response.Body).Decode(&tasks)
+	if err != nil {
+		return 0, err
+	}
+
 	if len(tasks) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	messageCount := 0
@@ -47,35 +70,32 @@ func (h Handler) SendTaskList(bot *tgbotapi.BotAPI, chatID int64, userID int, me
 		}
 	}
 
-	return messageCount
+	return messageCount, nil
 }
 
-func (h Handler) DoneTask(userID int, id string) (string, error) {
-	taskID, err := strconv.Atoi(id)
+func (h Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
+	response, err := h.api.Post(ctx, "/tasks/"+taskID+"/done", nil)
 	if err != nil {
 		return "", err
 	}
 
-	changeErr := h.service.MarkDone(taskID, domain.AccessScope{UserID: userID})
-	if changeErr != nil {
-		return "", changeErr
+	var task domain.Task
+
+	err = json.NewDecoder(response.Body).Decode(&task)
+	if err != nil {
+		return "", err
 	}
+	defer response.Body.Close()
 
-	task, _ := h.service.GetTask(taskID, domain.AccessScope{UserID: userID})
-
-	return getTaskRowText(*task), nil
+	return getTaskRowText(task), nil
 }
 
-func (h Handler) DeleteTask(userID int, id string) error {
-	taskID, err := strconv.Atoi(id)
+func (h Handler) DeleteTask(ctx context.Context, taskID string) error {
+	response, err := h.api.Delete(ctx, "/tasks/"+taskID+"")
 	if err != nil {
 		return err
 	}
-
-	deleteErr := h.service.DeleteTask(taskID, domain.AccessScope{UserID: userID})
-	if deleteErr != nil {
-		return deleteErr
-	}
+	defer response.Body.Close()
 
 	return nil
 }

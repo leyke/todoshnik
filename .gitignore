@@ -3,5 +3,6 @@ tmp/*
 .DS_Store
 .42c/*
 .vscode/*
+.vsdb/*
 
 .env

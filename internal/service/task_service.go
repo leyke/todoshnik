@@ -78,19 +78,19 @@ func (s *TaskService) DeleteTask(taskId int, scope domain.AccessScope) error {
 	return s.repo.Delete(task)
 }
 
-func (s *TaskService) MarkDone(taskId int, scope domain.AccessScope) error {
+func (s *TaskService) MarkDone(taskId int, scope domain.AccessScope) (*domain.Task, error) {
 	task, err := s.GetTask(taskId, scope)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	task.Done = !task.Done
 	err = s.repo.Update(task)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return task, nil
 }
 
 func (s *TaskService) GetTask(taskId int, scope domain.AccessScope) (*domain.Task, error) {

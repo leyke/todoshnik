@@ -31,9 +31,9 @@ func (repo *TaskDbRepository) List(filter domain.TaskFilter) []*domain.Task {
 		where["done"] = false
 	case domain.StatusCompleted:
 		where["done"] = true
-
 	}
-	repo.db.Order("done desc, id").Find(result)
+
+	repo.db.Order("done desc, id").Find(&result, where)
 
 	return result
 }

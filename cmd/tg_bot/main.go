@@ -14,6 +14,7 @@ var logFileName string = "/tg.log"
 func main() {
 	container := app.InitApp(logFileName)
 	defer container.LogFile.Close()
+	defer container.Cache.Close()
 
 	botapi, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
@@ -22,6 +23,6 @@ func main() {
 
 	botapi.Debug = os.Getenv("TELEGRAM_DEBUG") == "1"
 
-	bh := bot.NewBotHandler(container, botapi, container.Logger)
+	bh := bot.NewBotHandler(container, botapi)
 	bh.Run()
 }

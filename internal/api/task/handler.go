@@ -26,11 +26,11 @@ func NewHandler(s *service.TaskService) *Handler {
 
 func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
-	method := params.Get("status")
+	status := params.Get("status")
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
 	tasks := api.service.ListTasks(domain.TaskFilter{
-		Status: domain.TaskStatus(method),
+		Status: domain.TaskStatus(status),
 		Scope:  domain.AccessScope{IsAdmin: false, UserID: userID},
 	})
 
@@ -106,7 +106,7 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
-	updateErr := api.service.MarkDone(id, domain.AccessScope{IsAdmin: false, UserID: userID})
+	task, updateErr := api.service.MarkDone(id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if updateErr != nil {
 		if errors.Is(updateErr, apperrors.ErrNotFound) {
 			http.Error(w, updateErr.Error(), http.StatusNotFound)
@@ -117,7 +117,7 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("UserID: %d | Отмечена как выполненная задача: %v\n", userID, id)
-	response.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
+	response.WriteJSON(w, http.StatusOK, task)
 }
 
 func (api *Handler) View(w http.ResponseWriter, r *http.Request) {

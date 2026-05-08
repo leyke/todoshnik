@@ -7,7 +7,7 @@ type InlineKeyboardBtn struct {
 	Callback string
 }
 
-// Создает одно строковую клавиатуру
+// Создает одно-строковую клавиатуру
 func NewKeyboard(btns []InlineKeyboardBtn) tgbotapi.InlineKeyboardMarkup {
 	row := make([]tgbotapi.InlineKeyboardButton, 0, len(btns))
 	for _, item := range btns {

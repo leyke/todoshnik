@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	ah "todoshnik/internal/api/auth"
 	"todoshnik/internal/api/contextkeys"
@@ -50,4 +51,26 @@ func extractTokenFromHeader(r *http.Request) (string, bool) {
 	}
 
 	return token, true
+}
+
+func BotAuth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("X-Bot-Service-Token")
+
+			token := strings.TrimSpace(authHeader)
+			if token == "" {
+				http.Error(w, "Unauthorized: не передан токен", http.StatusUnauthorized)
+				return
+			}
+
+			if token != os.Getenv("BOT_SERVICE_TOKEN") {
+				fmt.Printf("Неверный сервисный токен бота")
+				http.Error(w, "Unauthorized: сервисный токен не верен", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

@@ -1,25 +1,80 @@
 package user
 
 import (
-	"todoshnik/internal/domain"
-	"todoshnik/internal/service"
+	"context"
+	"encoding/json"
+	"fmt"
+	"todoshnik/internal/client"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Handler struct {
-	service *service.UserService
+	api *client.ApiClient
 }
 
-func NewHandler(s *service.UserService) *Handler {
-	return &Handler{service: s}
+func NewHandler(api *client.ApiClient) *Handler {
+	return &Handler{api: api}
 }
 
-func (uh Handler) AddUser(user *tgbotapi.User) {
-	uh.service.AddTgUser(user.UserName, user.ID)
+func (h Handler) GetToken(ctx context.Context, tgUser *tgbotapi.User) (string, error) {
+	response, err := h.api.Post(
+		ctx,
+		"/auth/tg/login",
+		TgLoginRequestDto{
+			TgUserID: tgUser.ID,
+			Name:     tgUser.UserName,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	var responseInfo UserAuthInfoResponseDto
+
+	err = json.NewDecoder(response.Body).Decode(&responseInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if responseInfo.AccessToken != "" {
+		return responseInfo.AccessToken, nil
+	}
+
+	return "", fmt.Errorf(
+		"Ошибка получения токена из: %v",
+		responseInfo,
+	)
 }
 
-func (uh Handler) GetAppUser(tgUser *tgbotapi.User) (*domain.User, error) {
-	appUser, err := uh.service.GetUserByTgId(tgUser.ID)
-	return appUser, err
+func (h Handler) SignInUser(ctx context.Context, tgUser *tgbotapi.User) (string, error) {
+	response, err := h.api.Post(
+		ctx,
+		"/auth/tg/auto-reg",
+		TgLoginRequestDto{
+			TgUserID: tgUser.ID,
+			Name:     tgUser.UserName,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	var responseInfo UserAuthInfoResponseDto
+
+	err = json.NewDecoder(response.Body).Decode(&responseInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if responseInfo.AccessToken != "" {
+		return responseInfo.AccessToken, nil
+	}
+
+	return "", fmt.Errorf(
+		"Ошибка получения токена из: %v",
+		responseInfo,
+	)
 }

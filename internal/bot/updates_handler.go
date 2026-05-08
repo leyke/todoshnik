@@ -1,35 +1,48 @@
 package bot
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
+	"time"
 
 	"todoshnik/internal/app"
 	"todoshnik/internal/bot/task"
 	"todoshnik/internal/bot/tg"
 	"todoshnik/internal/bot/user"
+	"todoshnik/internal/client"
 	apperrors "todoshnik/internal/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/redis/go-redis/v9"
 )
+
+const botTokenTtl time.Duration = 4 * time.Hour
 
 type BotHandler struct {
 	TaskHandler  *task.Handler
 	UserHandler  *user.Handler
 	StateStorage *user.StateStorage
+	cache        *redis.Client
+	api          *client.ApiClient
 	bot          *tgbotapi.BotAPI
 	logger       *log.Logger
 }
 
-func NewBotHandler(container *app.App, bot *tgbotapi.BotAPI, logger *log.Logger) *BotHandler {
+func NewBotHandler(container *app.App, bot *tgbotapi.BotAPI) *BotHandler {
+	apiClient := client.NewApiClient(os.Getenv("API_URL"))
 	return &BotHandler{
-		TaskHandler:  task.NewHandler(container.TaskService, logger),
-		UserHandler:  user.NewHandler(container.UserService),
-		StateStorage: user.NewStateStorage(),
+		TaskHandler:  task.NewHandler(apiClient, container.Logger),
+		UserHandler:  user.NewHandler(apiClient),
+		StateStorage: user.NewStateStorage(container.Cache),
+		cache:        container.Cache,
+		api:          apiClient,
 		bot:          bot,
-		logger:       logger,
+		logger:       container.Logger,
 	}
 }
 
@@ -42,30 +55,36 @@ func (bh *BotHandler) Run() {
 	updates := bh.bot.GetUpdatesChan(u)
 
 	for update := range updates {
-
-		var msg *tgbotapi.MessageConfig
-
-		if update.CallbackQuery != nil {
-			msg = bh.handleCallback(update)
-		} else if update.Message != nil {
-			if update.Message.IsCommand() {
-				msg = bh.handleCommand(update)
-			} else {
-				msg = bh.handleMessage(update)
-			}
-		} else {
-			continue
-		}
-
-		if _, err := bh.bot.Send(msg); err != nil {
-			log.Panic(err)
-		}
+		go bh.handleUpdate(update)
 	}
 }
 
-func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageConfig {
+func (bh *BotHandler) handleUpdate(update tgbotapi.Update) {
+	var msg *tgbotapi.MessageConfig
+
+	ctx := context.Background()
+
+	if update.CallbackQuery != nil {
+		ctx = bh.handleAuth(ctx, update.CallbackQuery.From)
+		msg = bh.handleCallback(ctx, update)
+	} else if update.Message != nil {
+		ctx = bh.handleAuth(ctx, update.Message.From)
+		if update.Message.IsCommand() {
+			msg = bh.handleCommand(ctx, update)
+		} else {
+			msg = bh.handleMessage(ctx, update)
+		}
+	} else {
+		return
+	}
+
+	if _, err := bh.bot.Send(msg); err != nil {
+		log.Panic(err)
+	}
+}
+
+func (bh *BotHandler) handleCallback(ctx context.Context, update tgbotapi.Update) *tgbotapi.MessageConfig {
 	query := update.CallbackQuery
-	tgUser := query.From
 	msg := tgbotapi.NewMessage(query.Message.Chat.ID, "")
 
 	bh.bot.Request(tgbotapi.NewCallback(query.ID, ""))
@@ -80,18 +99,15 @@ func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageCo
 		return &msg
 	}
 
-	appUser, err := bh.UserHandler.GetAppUser(tgUser)
-	if err != nil {
-		msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
-		return &msg
-	}
-
 	switch callback.Command {
 	case tg.СommandTaskDone:
-		taskRowText, err := bh.TaskHandler.DoneTask(appUser.ID, callback.Payload["task_id"])
+		taskRowText, err := bh.TaskHandler.DoneTask(ctx, callback.Payload["task_id"])
 		if err != nil {
 			if errors.Is(err, apperrors.ErrNotFound) {
 				msg.Text = err.Error()
+			} else if errors.Is(err, apperrors.ErrUnAuth) {
+				msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
+				return &msg
 			} else {
 				msg.Text = "Возникла непредвиденная ошибка"
 				fmt.Println(err.Error())
@@ -105,10 +121,13 @@ func (bh *BotHandler) handleCallback(update tgbotapi.Update) *tgbotapi.MessageCo
 
 		msg.Text = "Статус обновлен"
 	case tg.CommandTaskDelete:
-		err := bh.TaskHandler.DeleteTask(appUser.ID, callback.Payload["task_id"])
+		err := bh.TaskHandler.DeleteTask(ctx, callback.Payload["task_id"])
 		if err != nil {
 			if errors.Is(err, apperrors.ErrNotFound) {
 				msg.Text = err.Error()
+			} else if errors.Is(err, apperrors.ErrUnAuth) {
+				msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
+				return &msg
 			} else {
 				msg.Text = "Возникла непредвиденная ошибка"
 				fmt.Println(err.Error())
@@ -143,7 +162,7 @@ func (bh *BotHandler) deleteTgMessage(chatID int64, messageID int) {
 	bh.bot.Send(deleteMsg)
 }
 
-func (bh *BotHandler) handleCommand(update tgbotapi.Update) *tgbotapi.MessageConfig {
+func (bh *BotHandler) handleCommand(ctx context.Context, update tgbotapi.Update) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	tgUser := update.Message.From
 
@@ -151,34 +170,54 @@ func (bh *BotHandler) handleCommand(update tgbotapi.Update) *tgbotapi.MessageCon
 	args := update.Message.CommandArguments()
 	switch command {
 	case tg.CommandStart, tg.CommandRestart:
-		bh.UserHandler.AddUser(tgUser)
+		err := bh.handleWelcome(ctx, tgUser)
+		if err != nil {
+			msg.Text = "Ошибка знакомства"
+			fmt.Println(err.Error())
+			bh.logger.Println(err)
+			return &msg
+		}
+
 		msg.Text = "Привет, я готов запоминать задачи, начни с /add"
 	case tg.CommandHelp:
 		msg.Text = "Я могу /add, /list, /status и /restart."
 	case tg.CommandStatus:
-		msg.Text = "Я ОК."
+		msg.Text = "Я OK."
 	case tg.CommandAdd:
-		appUser, err := bh.UserHandler.GetAppUser(tgUser)
-		if err != nil {
-			msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
-			return &msg
-		}
 
 		if args == "" {
-			bh.startCommandHandling(tgUser, tg.CommandAdd)
+			bh.startCommandHandling(ctx, tgUser, tg.CommandAdd)
 			msg.Text = "Напиши задачу и я её запомню!"
 		} else {
-			bh.TaskHandler.AddTask(appUser.ID, args)
+			_, err := bh.TaskHandler.AddTask(ctx, args)
+			if err != nil {
+				if errors.Is(err, apperrors.ErrNotFound) {
+					msg.Text = err.Error()
+				} else if errors.Is(err, apperrors.ErrUnAuth) {
+					msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
+					return &msg
+				} else {
+					msg.Text = "Возникла непредвиденная ошибка"
+					fmt.Println(err.Error())
+					bh.logger.Println(err)
+				}
+				break
+			}
 			msg.Text = fmt.Sprintf("Добавил: %v", args)
 		}
 	case tg.СommandTaskList:
-		appUser, err := bh.UserHandler.GetAppUser(tgUser)
+		count, err := bh.TaskHandler.SendTaskList(ctx, bh.bot, update.Message.Chat.ID, args)
 		if err != nil {
-			msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
-			return &msg
+			if errors.Is(err, apperrors.ErrUnAuth) {
+				msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
+				return &msg
+			} else {
+				msg.Text = "Возникла непредвиденная ошибка"
+				fmt.Println(err.Error())
+				bh.logger.Println(err)
+			}
+			break
 		}
-
-		count := bh.TaskHandler.SendTaskList(bh.bot, update.Message.Chat.ID, appUser.ID, args)
 		if count == 0 {
 			msg.Text = "У меня пока нет твоих задач. Давай добавим /add"
 		} else {
@@ -191,53 +230,85 @@ func (bh *BotHandler) handleCommand(update tgbotapi.Update) *tgbotapi.MessageCon
 	return &msg
 }
 
-func (bh *BotHandler) handleMessage(update tgbotapi.Update) *tgbotapi.MessageConfig {
+func (bh *BotHandler) handleMessage(ctx context.Context, update tgbotapi.Update) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	tgUser := update.Message.From
 
-	lastState, ok := bh.StateStorage.Get(tgUser.ID)
+	lastState, ok := bh.StateStorage.Get(ctx, tgUser.ID)
 	if !ok {
 		msg.Text = "Я забыл на чем мы остановились, повтори ввод команды"
 		return &msg
 	}
-	fmt.Println(lastState)
+
 	if lastState.State != tg.StateWait {
 		msg.Text = "Я уже все сделал, начни новую команду"
 		return &msg
 	}
 
-	appUser, err := bh.UserHandler.GetAppUser(tgUser)
-	if err != nil {
-		msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
-		return &msg
-	}
-
 	switch lastState.Command {
 	case tg.CommandAdd:
-		task, err := bh.TaskHandler.AddTask(appUser.ID, update.Message.Text)
+		task, err := bh.TaskHandler.AddTask(ctx, update.Message.Text)
 		if err != nil {
-			if errors.Is(err, apperrors.ErrNotValidate) {
-				msg.Text = fmt.Sprintf("Возникла ошибка: %v", err.Error())
+			if errors.Is(err, apperrors.ErrNotFound) {
+				msg.Text = err.Error()
+			} else if errors.Is(err, apperrors.ErrUnAuth) {
+				msg.Text = "Я тебя забыл, давай познакомимся еще раз /restart"
+				return &msg
 			} else {
 				msg.Text = "Возникла непредвиденная ошибка"
 				fmt.Println(err.Error())
 				bh.logger.Println(err)
 			}
-		} else {
-			msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
-			bh.finishCommandHandling(tgUser, tg.CommandAdd)
+			break
 		}
+
+		msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
+		bh.finishCommandHandling(ctx, tgUser, tg.CommandAdd)
 	default:
-		msg.Text = "Для этой команды я уже ничего не могу сделать, начни новую"
+		msg.Text = "Для этой команды я ничего не могу сделать, начни новую"
 	}
 
 	return &msg
 }
 
-func (bh BotHandler) startCommandHandling(user *tgbotapi.User, command tg.Command) {
-	bh.StateStorage.Set(user.ID, command, tg.StateWait)
+func (bh BotHandler) startCommandHandling(ctx context.Context, user *tgbotapi.User, command tg.Command) {
+	bh.StateStorage.Set(ctx, user.ID, command, tg.StateWait)
 }
 
-func (bh BotHandler) finishCommandHandling(user *tgbotapi.User, command tg.Command) {
-	bh.StateStorage.Set(user.ID, command, tg.StateComplete)
+func (bh BotHandler) finishCommandHandling(ctx context.Context, user *tgbotapi.User, command tg.Command) {
+	bh.StateStorage.Set(ctx, user.ID, command, tg.StateComplete)
+}
+
+func (bh BotHandler) handleAuth(ctx context.Context, user *tgbotapi.User) context.Context {
+	tokenCacheKey := "user:" + strconv.FormatInt(user.ID, 10) + ":tg-api-token-key"
+
+	// попытка забрать из кеша
+	token, _ := bh.cache.Get(ctx, tokenCacheKey).Result()
+	if token != "" {
+		return context.WithValue(ctx, tg.TokenContextKey, token)
+	}
+
+	// попытка сгенерировать через апи
+	token, err := bh.UserHandler.GetToken(ctx, user)
+	if err != nil {
+		return ctx
+	}
+
+	// вставить в кеш
+	bh.cache.Set(ctx, tokenCacheKey, token, botTokenTtl)
+
+	return context.WithValue(ctx, tg.TokenContextKey, token)
+}
+
+func (bh BotHandler) handleWelcome(ctx context.Context, user *tgbotapi.User) error {
+	tokenCacheKey := "user:" + strconv.FormatInt(user.ID, 10) + ":tg-api-token-key"
+
+	token, err := bh.UserHandler.SignInUser(ctx, user)
+	if err != nil {
+		return err
+	}
+
+	bh.cache.Set(ctx, tokenCacheKey, token, botTokenTtl)
+
+	return nil
 }

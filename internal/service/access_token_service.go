@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultTokenTtl int = 14
+	DefaultTokenTtl int = 14 // количество дней жизни токена
 )
 
 type AccessTokenService struct {
@@ -25,7 +25,7 @@ func NewAccessTokenService(repo repository.AccessTokenRepositoryInterface) *Acce
 	}
 }
 
-func (s *AccessTokenService) AddToken(user *domain.User) (*domain.Token, error) {
+func (s *AccessTokenService) AddToken(user *domain.User, device domain.DeviceType) (*domain.Token, error) {
 	token, tokenError := auth.GenerateToken()
 	if tokenError != nil {
 		return nil, tokenError
@@ -43,6 +43,7 @@ func (s *AccessTokenService) AddToken(user *domain.User) (*domain.Token, error) 
 		UserID:    user.ID,
 		Hash:      hash,
 		ExpiresAt: localTime,
+		Device:    device,
 	}
 
 	newToken, err := s.repo.Create(newToken)

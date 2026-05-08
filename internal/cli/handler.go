@@ -71,7 +71,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		err = cli.service.MarkDone(taskId, domain.AccessScope{IsAdmin: true})
+		_, err = cli.service.MarkDone(taskId, domain.AccessScope{IsAdmin: true})
 		if err != nil {
 			fmt.Printf("Ошибка пометки задачи как выполненной: %v\n", err)
 		}

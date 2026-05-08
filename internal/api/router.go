@@ -17,6 +17,13 @@ func (api *APIHandler) Router() http.Handler {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/sign-in", api.authHandler.SignIn)
 		r.Post("/sign-up", api.authHandler.SignUp)
+
+		r.Route("/tg", func(r chi.Router) {
+			r.Use(middleware.BotAuth(api.authHandler))
+
+			r.Post("/login", api.authHandler.TgLogin)
+			r.Post("/auto-reg", api.authHandler.TgAutoReg)
+		})
 	})
 
 	// Tasks
@@ -27,7 +34,7 @@ func (api *APIHandler) Router() http.Handler {
 		r.Post("/", api.taskHandler.Create)
 
 		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", api.taskHandler.View)      // GET //tasks/123
+			r.Get("/", api.taskHandler.View)      // GET /tasks/123
 			r.Put("/", api.taskHandler.Update)    // PUT /tasks/123
 			r.Post("/done", api.taskHandler.Done) // POST /tasks/123/done
 			r.Delete("/", api.taskHandler.Delete) // DELETE /tasks/123

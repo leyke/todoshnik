@@ -46,7 +46,7 @@ func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user)
+	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeApi)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -80,7 +80,65 @@ func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user)
+	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeApi)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+func (h AuthHandler) TgLogin(w http.ResponseWriter, r *http.Request) {
+	var requestDto dto.TgLoginRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.GetUserByTgId(requestDto.TgUserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeBot)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
+	var requestDto dto.TgLoginRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.AddTgUser(requestDto.Name, requestDto.TgUserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeBot)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
