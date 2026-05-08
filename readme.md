@@ -16,6 +16,9 @@
 Запуск `go run cmd/tg_bot/main.go`  
 [@todoshnik_bot](https://t.me/todoshnik_bot)
 
+### Docker
+Классика через `docker compose up --build`
+
 ## TODO
 - Отрефакторить (раскидать все по красивым пакетам, разобрать хэндлеры АПИ и бота по своим сервисам)
 - Закинуть на Хостинг?
