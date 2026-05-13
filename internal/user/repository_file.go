@@ -4,18 +4,17 @@ import (
 	"context"
 	"sort"
 	"sync"
-	"todoshnik/internal/domain"
 	"todoshnik/internal/storage"
 )
 
-type UserFileRepository struct {
+type FileRepository struct {
 	mu      sync.RWMutex
-	storage storage.FileStorage[domain.User]
-	items   map[int]*domain.User
+	storage storage.FileStorage[User]
+	items   map[int]*User
 	nextID  int
 }
 
-func NewUserFileRepository(storage storage.FileStorage[domain.User]) (*UserFileRepository, error) {
+func NewFileRepository(storage storage.FileStorage[User]) (*FileRepository, error) {
 	items, err := storage.Load()
 	if err != nil {
 		return nil, err
@@ -28,14 +27,17 @@ func NewUserFileRepository(storage storage.FileStorage[domain.User]) (*UserFileR
 		}
 	}
 
-	return &UserFileRepository{
+	return &FileRepository{
 		storage: storage,
 		items:   items,
 		nextID:  maxID + 1,
 	}, nil
 }
 
-func (repo *UserFileRepository) List(ctx context.Context) []*domain.User {
+func (repo *FileRepository) List(ctx context.Context) []*User {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
 	select {
 	case <-ctx.Done():
 		return nil
@@ -48,14 +50,14 @@ func (repo *UserFileRepository) List(ctx context.Context) []*domain.User {
 	}
 	sort.Ints(keys)
 
-	result := make([]*domain.User, 0, len(keys))
+	result := make([]*User, 0, len(keys))
 	for _, k := range keys {
 		result = append(result, repo.items[k])
 	}
 	return result
 }
 
-func (repo *UserFileRepository) GetByID(ctx context.Context, id int) (*domain.User, bool) {
+func (repo *FileRepository) GetByID(ctx context.Context, id int) (*User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -66,10 +68,15 @@ func (repo *UserFileRepository) GetByID(ctx context.Context, id int) (*domain.Us
 	}
 
 	user, ok := repo.items[id]
-	return user, ok
+	if !ok {
+		return nil, false
+	}
+
+	copy := *user
+	return &copy, ok
 }
 
-func (repo *UserFileRepository) GetByLogin(ctx context.Context, login string) (*domain.User, bool) {
+func (repo *FileRepository) GetByLogin(ctx context.Context, login string) (*User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -81,14 +88,15 @@ func (repo *UserFileRepository) GetByLogin(ctx context.Context, login string) (*
 
 	for _, user := range repo.items {
 		if user.Login == login {
-			return user, true
+			copy := *user
+			return &copy, true
 		}
 	}
 
 	return nil, false
 }
 
-func (repo *UserFileRepository) GetUserByTgId(ctx context.Context, userTgId int64) (*domain.User, bool) {
+func (repo *FileRepository) GetByTgId(ctx context.Context, userTgId int64) (*User, bool) {
 	select {
 	case <-ctx.Done():
 		return nil, false
@@ -97,14 +105,15 @@ func (repo *UserFileRepository) GetUserByTgId(ctx context.Context, userTgId int6
 
 	for _, user := range repo.items {
 		if user.TelegramID == userTgId {
-			return user, true
+			copy := *user
+			return &copy, true
 		}
 	}
 
 	return nil, false
 }
 
-func (repo *UserFileRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
+func (repo *FileRepository) Create(ctx context.Context, user *User) (*User, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -127,7 +136,7 @@ func (repo *UserFileRepository) Create(ctx context.Context, user *domain.User) (
 	return user, nil
 }
 
-func (repo *UserFileRepository) Update(ctx context.Context, user *domain.User) error {
+func (repo *FileRepository) Update(ctx context.Context, user *User) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -149,7 +158,7 @@ func (repo *UserFileRepository) Update(ctx context.Context, user *domain.User) e
 	return nil
 }
 
-func (repo *UserFileRepository) Delete(ctx context.Context, user *domain.User) error {
+func (repo *FileRepository) Delete(ctx context.Context, user *User) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

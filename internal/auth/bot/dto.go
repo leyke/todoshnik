@@ -1,4 +1,4 @@
-package user
+package bot
 
 type TgLoginRequestDto struct {
 	TgUserID int64  `json:"tg_user_id"`

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	authapi "todoshnik/internal/auth/api"
 	apperrors "todoshnik/internal/errors"
+	"todoshnik/internal/user"
 
-	"todoshnik/internal/api/dto"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
 	"todoshnik/internal/domain"
@@ -14,11 +15,11 @@ import (
 )
 
 type AuthHandler struct {
-	userService  *service.UserService
+	userService  *user.Service
 	tokenService *service.AccessTokenService
 }
 
-func NewAuthHandler(userService *service.UserService, tokenService *service.AccessTokenService) *AuthHandler {
+func NewAuthHandler(userService *user.Service, tokenService *service.AccessTokenService) *AuthHandler {
 	return &AuthHandler{
 		userService:  userService,
 		tokenService: tokenService,
@@ -26,7 +27,7 @@ func NewAuthHandler(userService *service.UserService, tokenService *service.Acce
 }
 
 func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.UserSignUpRequestDto
+	var requestDto authapi.UserSignUpRequestDto
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
 		if err.Error() == "EOF" {
 			http.Error(w, "Пустой запрос", http.StatusBadRequest)
@@ -36,7 +37,7 @@ func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.AddUser(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
+	user, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
 	if err != nil {
 		if err == apperrors.ErrConflict {
 			http.Error(w, "Пользователь с таким логином уже существует", http.StatusConflict)
@@ -53,14 +54,14 @@ func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+	response.WriteJSON(w, http.StatusOK, authapi.AuthResponseDto{
 		UserID:      user.ID,
 		AccessToken: accessToken.Hash,
 	})
 }
 
 func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.UserSignInRequestDto
+	var requestDto authapi.UserSignInRequestDto
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
 		if err.Error() == "EOF" {
 			http.Error(w, "Пустой запрос", http.StatusBadRequest)
@@ -70,7 +71,7 @@ func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.GetUser(r.Context(), 0, requestDto.Login)
+	user, err := h.userService.Get(r.Context(), 0, requestDto.Login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -87,14 +88,14 @@ func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+	response.WriteJSON(w, http.StatusOK, authapi.AuthResponseDto{
 		UserID:      user.ID,
 		AccessToken: accessToken.Hash,
 	})
 }
 
 func (h AuthHandler) TgLogin(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.TgLoginRequestDto
+	var requestDto authapi.TgLoginRequestDto
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
 		if err.Error() == "EOF" {
 			http.Error(w, "Пустой запрос", http.StatusBadRequest)
@@ -104,7 +105,7 @@ func (h AuthHandler) TgLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.GetUserByTgId(r.Context(), requestDto.TgUserID)
+	user, err := h.userService.GetByTgId(r.Context(), requestDto.TgUserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -116,14 +117,14 @@ func (h AuthHandler) TgLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+	response.WriteJSON(w, http.StatusOK, authapi.AuthResponseDto{
 		UserID:      user.ID,
 		AccessToken: accessToken.Hash,
 	})
 }
 
 func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
-	var requestDto dto.TgLoginRequestDto
+	var requestDto authapi.TgLoginRequestDto
 	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
 		if err.Error() == "EOF" {
 			http.Error(w, "Пустой запрос", http.StatusBadRequest)
@@ -133,7 +134,7 @@ func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.AddTgUser(r.Context(), requestDto.Name, requestDto.TgUserID)
+	user, err := h.userService.AddFromTg(r.Context(), requestDto.Name, requestDto.TgUserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -145,19 +146,19 @@ func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, dto.AuthResponseDto{
+	response.WriteJSON(w, http.StatusOK, authapi.AuthResponseDto{
 		UserID:      user.ID,
 		AccessToken: accessToken.Hash,
 	})
 }
 
-func (h AuthHandler) ValidateToken(ctx context.Context, token string) (*domain.User, error) {
+func (h AuthHandler) ValidateToken(ctx context.Context, token string) (*user.User, error) {
 	userID, err := h.tokenService.GetUserID(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.userService.GetUser(ctx, userID, "")
+	user, err := h.userService.Get(ctx, userID, "")
 	if err != nil {
 		return nil, err
 	}

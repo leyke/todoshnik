@@ -7,8 +7,6 @@ import (
 	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/identity"
 	"todoshnik/internal/validation"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type Service struct {
@@ -101,7 +99,7 @@ func validateTask(task *Task) error {
 	ve := validation.Validate(task)
 	if ve != nil {
 		fmt.Println(ve)
-		return apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
+		return apperrors.NewValidationErrorFromValidator(ve)
 	}
 	return nil
 }

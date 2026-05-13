@@ -37,7 +37,8 @@ func (e ValidationError) Error() string {
 
 }
 
-func NewValidationErrorFromValidator(ve validator.ValidationErrors) ValidationError {
+func NewValidationErrorFromValidator(err error) ValidationError {
+	ve := err.(validator.ValidationErrors)
 	errors := make(map[string]string)
 
 	for _, err := range ve {

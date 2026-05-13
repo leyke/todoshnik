@@ -10,6 +10,7 @@ import (
 	"todoshnik/internal/domain"
 	apperrors "todoshnik/internal/errors"
 	repository "todoshnik/internal/repository/access_token"
+	"todoshnik/internal/user"
 )
 
 const (
@@ -26,7 +27,7 @@ func NewAccessTokenService(repo repository.AccessTokenRepositoryInterface) *Acce
 	}
 }
 
-func (s *AccessTokenService) AddToken(ctx context.Context, user *domain.User, device domain.DeviceType) (*domain.Token, error) {
+func (s *AccessTokenService) AddToken(ctx context.Context, user *user.User, device domain.DeviceType) (*domain.Token, error) {
 	token, tokenError := auth.GenerateToken()
 	if tokenError != nil {
 		return nil, tokenError

@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"todoshnik/internal/app"
+	authbot "todoshnik/internal/auth/bot"
+	"todoshnik/internal/bot/session"
 	"todoshnik/internal/bot/tg"
-	"todoshnik/internal/bot/user"
 	"todoshnik/internal/client"
 	apperrors "todoshnik/internal/errors"
 	task "todoshnik/internal/task/bot"
@@ -25,8 +26,8 @@ const botTokenTtl time.Duration = 4 * time.Hour
 
 type BotHandler struct {
 	TaskHandler  *task.Handler
-	UserHandler  *user.Handler
-	StateStorage *user.StateStorage
+	UserHandler  *authbot.Handler
+	StateStorage *session.StateStorage
 	cache        *redis.Client
 	api          *client.ApiClient
 	bot          *tgbotapi.BotAPI
@@ -37,8 +38,8 @@ func NewBotHandler(container *app.App, bot *tgbotapi.BotAPI) *BotHandler {
 	apiClient := client.NewApiClient(os.Getenv("API_URL"))
 	return &BotHandler{
 		TaskHandler:  task.NewHandler(apiClient, container.Logger),
-		UserHandler:  user.NewHandler(apiClient),
-		StateStorage: user.NewStateStorage(container.Cache),
+		UserHandler:  authbot.NewHandler(apiClient),
+		StateStorage: session.NewStateStorage(container.Cache),
 		cache:        container.Cache,
 		api:          apiClient,
 		bot:          bot,

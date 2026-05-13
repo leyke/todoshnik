@@ -1,4 +1,4 @@
-package user
+package session
 
 import (
 	"context"
@@ -9,11 +9,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 )
-
-type UserState struct {
-	tg.Command
-	tg.State
-}
 
 type StateStorage struct {
 	rdb *redis.Client
@@ -46,7 +41,7 @@ func (ss *StateStorage) Set(ctx context.Context, userID int64, command tg.Comman
 	return nil
 }
 
-func (ss *StateStorage) Get(ctx context.Context, userID int64) (*UserState, bool) {
+func (ss *StateStorage) Get(ctx context.Context, userID int64) (*Session, bool) {
 	key := getKey(userID)
 	fmt.Println(key)
 	data, err := ss.rdb.HGetAll(ctx, key).Result()
@@ -58,7 +53,7 @@ func (ss *StateStorage) Get(ctx context.Context, userID int64) (*UserState, bool
 		return nil, false
 	}
 
-	us := &UserState{
+	us := &Session{
 		State: tg.StateIdale,
 	}
 	command, ok := data["command"]

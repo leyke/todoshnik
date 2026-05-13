@@ -1,4 +1,4 @@
-package dto
+package api
 
 type UserSignUpRequestDto struct {
 	Login    string `json:"login" validate:"required,min=3"`
