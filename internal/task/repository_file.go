@@ -4,19 +4,19 @@ import (
 	"context"
 	"sort"
 	"sync"
-	"todoshnik/internal/domain"
 	apperror "todoshnik/internal/errors"
+	"todoshnik/internal/identity"
 	"todoshnik/internal/storage"
 )
 
-type TaskFileRepository struct {
+type FileRepository struct {
 	mu      sync.RWMutex
-	storage storage.FileStorage[domain.Task]
-	items   map[int]*domain.Task
+	storage storage.FileStorage[Task]
+	items   map[int]*Task
 	nextID  int
 }
 
-func NewTaskFileRepository(storage storage.FileStorage[domain.Task]) (*TaskFileRepository, error) {
+func NewFileRepository(storage storage.FileStorage[Task]) (*FileRepository, error) {
 	items, err := storage.Load()
 	if err != nil {
 		return nil, err
@@ -29,24 +29,24 @@ func NewTaskFileRepository(storage storage.FileStorage[domain.Task]) (*TaskFileR
 		}
 	}
 
-	return &TaskFileRepository{
+	return &FileRepository{
 		storage: storage,
 		items:   items,
 		nextID:  maxID + 1,
 	}, nil
 }
 
-func (repo *TaskFileRepository) List(ctx context.Context, filter domain.TaskFilter) []*domain.Task {
+func (repo *FileRepository) List(ctx context.Context, filter TaskFilter) ([]*Task, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return nil
+		return nil, ctx.Err()
 	default:
 	}
 
-	items := make([]*domain.Task, 0)
+	items := make([]*Task, 0)
 
 	for _, task := range repo.items {
 		if !filter.Scope.IsAdmin && task.UserID != filter.Scope.UserID {
@@ -55,11 +55,11 @@ func (repo *TaskFileRepository) List(ctx context.Context, filter domain.TaskFilt
 
 		// Фильтрация по методу
 		switch filter.Status {
-		case domain.StatusPending:
+		case StatusPending:
 			if task.Done {
 				continue
 			}
-		case domain.StatusCompleted:
+		case StatusCompleted:
 			if !task.Done {
 				continue
 			}
@@ -75,10 +75,10 @@ func (repo *TaskFileRepository) List(ctx context.Context, filter domain.TaskFilt
 		return items[i].ID < items[j].ID
 	})
 
-	return items
+	return items, nil
 }
 
-func (repo *TaskFileRepository) GetByID(ctx context.Context, id int, scope domain.AccessScope) (*domain.Task, error) {
+func (repo *FileRepository) GetByID(ctx context.Context, id int, scope identity.AccessScope) (*Task, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -93,10 +93,11 @@ func (repo *TaskFileRepository) GetByID(ctx context.Context, id int, scope domai
 		return nil, apperror.ErrNotFound
 	}
 
-	return task, nil
+	copy := *task
+	return &copy, nil
 }
 
-func (repo *TaskFileRepository) Create(ctx context.Context, task *domain.Task) (*domain.Task, error) {
+func (repo *FileRepository) Create(ctx context.Context, task *Task) (*Task, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -116,10 +117,11 @@ func (repo *TaskFileRepository) Create(ctx context.Context, task *domain.Task) (
 		return nil, err
 	}
 
-	return task, nil
+	copy := *task
+	return &copy, nil
 }
 
-func (repo *TaskFileRepository) Update(ctx context.Context, task *domain.Task) error {
+func (repo *FileRepository) Update(ctx context.Context, task *Task) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -141,7 +143,7 @@ func (repo *TaskFileRepository) Update(ctx context.Context, task *domain.Task) e
 	return nil
 }
 
-func (repo *TaskFileRepository) Delete(ctx context.Context, task *domain.Task) error {
+func (repo *FileRepository) Delete(ctx context.Context, task *Task) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

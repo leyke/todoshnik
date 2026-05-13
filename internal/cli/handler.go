@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"todoshnik/internal/domain"
+	"todoshnik/internal/identity"
 	"todoshnik/internal/service"
+	"todoshnik/internal/task"
 )
 
 type CLIHandler struct {
-	service      *service.TaskService
+	service      *task.Service
 	tokenService *service.AccessTokenService
 }
 
-func NewCLIHandler(s *service.TaskService, ts *service.AccessTokenService) *CLIHandler {
+func NewCLIHandler(s *task.Service, ts *service.AccessTokenService) *CLIHandler {
 	return &CLIHandler{
 		service:      s,
 		tokenService: ts,
@@ -45,7 +46,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка получения ID задачи: %v\n", err)
 			break
 		}
-		task, err := cli.service.AddTask(ctx, newTitle, taskId)
+		task, err := cli.service.Add(ctx, newTitle, taskId)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break
@@ -56,12 +57,17 @@ func (cli *CLIHandler) Run() {
 		status := listCmd.String("status", "", "Фильтр по статусу: completed или pending")
 		listCmd.Parse(os.Args[2:])
 
-		tasks := cli.service.ListTasks(
+		tasks, err := cli.service.List(
 			ctx,
-			domain.TaskFilter{
-				Status: domain.TaskStatus(*status),
-				Scope:  domain.AccessScope{IsAdmin: true},
+			task.TaskFilter{
+				Status: task.Status(*status),
+				Scope:  identity.AccessScope{IsAdmin: true},
 			})
+
+		if err != nil {
+			fmt.Printf("Ошибка получения списка задач: %v\n", err)
+			break
+		}
 
 		if len(tasks) == 0 {
 			fmt.Println("Список задач пуст")
@@ -75,7 +81,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		_, err = cli.service.MarkDone(ctx, taskId, domain.AccessScope{IsAdmin: true})
+		_, err = cli.service.MarkDone(ctx, taskId, identity.AccessScope{IsAdmin: true})
 		if err != nil {
 			fmt.Printf("Ошибка пометки задачи как выполненной: %v\n", err)
 		}
@@ -85,7 +91,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		err = cli.service.DeleteTask(ctx, taskId, domain.AccessScope{IsAdmin: true})
+		err = cli.service.Delete(ctx, taskId, identity.AccessScope{IsAdmin: true})
 		if err != nil {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 		}
@@ -105,7 +111,7 @@ func getIntFromArgs(args []string, index int) (int, error) {
 	return strconv.Atoi(args[index])
 }
 
-func printList(list []*domain.Task) {
+func printList(list []*task.Task) {
 	for _, task := range list {
 		fmt.Printf("ID: %d, Title: %s, Done: %v\n", task.ID, task.Title, task.Done)
 	}

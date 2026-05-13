@@ -7,19 +7,19 @@ import (
 	"os"
 
 	"todoshnik/internal/api/auth"
-	"todoshnik/internal/api/task"
 	"todoshnik/internal/app"
+	taskapi "todoshnik/internal/task/api"
 )
 
 type APIHandler struct {
-	taskHandler *task.Handler
+	taskHandler *taskapi.Handler
 	authHandler *auth.AuthHandler
 	logger      *log.Logger
 }
 
 func NewAPIHandler(container *app.App) *APIHandler {
 	return &APIHandler{
-		taskHandler: task.NewHandler(container.TaskService),
+		taskHandler: taskapi.NewHandler(container.TaskService),
 		authHandler: auth.NewAuthHandler(container.UserService, container.TokenService),
 		logger:      container.Logger,
 	}

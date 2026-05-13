@@ -6,16 +6,16 @@ import (
 	"todoshnik/internal/infrastructure/db"
 	rdb "todoshnik/internal/redis"
 	tokenrepo "todoshnik/internal/repository/access_token"
-	taskrepo "todoshnik/internal/repository/task"
 	userrepo "todoshnik/internal/repository/user"
 	"todoshnik/internal/service"
+	"todoshnik/internal/task"
 
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
-	TaskService  *service.TaskService
+	TaskService  *task.Service
 	UserService  *service.UserService
 	TokenService *service.AccessTokenService
 	Logger       *log.Logger
@@ -39,12 +39,12 @@ func InitApp(logFileName string) *App {
 	redisBase := rdb.NewClient()
 
 	// Репозитории
-	taskRepo := taskrepo.NewTaskDbRepository(dataBase)
+	taskRepo := task.NewDbRepository(dataBase)
 	userRepo := userrepo.NewUserDbRepository(dataBase)
 	tokenRepo := tokenrepo.NewAccessTokenDbRepository(dataBase)
 
 	return &App{
-		TaskService:  service.NewTaskService(taskRepo),
+		TaskService:  task.NewService(taskRepo),
 		UserService:  service.NewUserService(userRepo),
 		TokenService: service.NewAccessTokenService(tokenRepo),
 		Logger:       log,

@@ -1,4 +1,4 @@
-package domain
+package identity
 
 type AccessScope struct {
 	UserID  int

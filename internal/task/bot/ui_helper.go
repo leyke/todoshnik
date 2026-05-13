@@ -1,12 +1,12 @@
-package task
+package bot
 
 import (
 	"fmt"
 	"todoshnik/internal/constants"
-	"todoshnik/internal/domain"
+	"todoshnik/internal/task"
 )
 
-func getStatusButtonText(task domain.Task) string {
+func getStatusButtonText(task task.Task) string {
 	if task.Done {
 		return constants.EmojiInProgress + " В процессе"
 	}
@@ -17,7 +17,7 @@ func getDeleteButtonText() string {
 	return constants.EmojiDelete + " Забыть"
 }
 
-func getTaskRowText(task domain.Task) string {
+func getTaskRowText(task task.Task) string {
 	emoji := constants.EmojiInProgress
 	if task.Done {
 		emoji = constants.EmojiIsDone

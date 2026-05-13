@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"todoshnik/internal/app"
-	"todoshnik/internal/bot/task"
 	"todoshnik/internal/bot/tg"
 	"todoshnik/internal/bot/user"
 	"todoshnik/internal/client"
 	apperrors "todoshnik/internal/errors"
+	task "todoshnik/internal/task/bot"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/redis/go-redis/v9"
@@ -189,7 +189,7 @@ func (bh *BotHandler) handleCommand(ctx context.Context, update tgbotapi.Update)
 			bh.startCommandHandling(ctx, tgUser, tg.CommandAdd)
 			msg.Text = "Напиши задачу и я её запомню!"
 		} else {
-			_, err := bh.TaskHandler.AddTask(ctx, args)
+			_, err := bh.TaskHandler.Add(ctx, args)
 			if err != nil {
 				if errors.Is(err, apperrors.ErrNotFound) {
 					msg.Text = err.Error()
@@ -247,7 +247,7 @@ func (bh *BotHandler) handleMessage(ctx context.Context, update tgbotapi.Update)
 
 	switch lastState.Command {
 	case tg.CommandAdd:
-		task, err := bh.TaskHandler.AddTask(ctx, update.Message.Text)
+		task, err := bh.TaskHandler.Add(ctx, update.Message.Text)
 		if err != nil {
 			if errors.Is(err, apperrors.ErrNotFound) {
 				msg.Text = err.Error()
