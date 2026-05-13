@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"todoshnik/internal/domain"
@@ -35,9 +36,15 @@ func NewTaskFileRepository(storage storage.FileStorage[domain.Task]) (*TaskFileR
 	}, nil
 }
 
-func (repo *TaskFileRepository) List(filter domain.TaskFilter) []*domain.Task {
+func (repo *TaskFileRepository) List(ctx context.Context, filter domain.TaskFilter) []*domain.Task {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 
 	items := make([]*domain.Task, 0)
 
@@ -71,9 +78,15 @@ func (repo *TaskFileRepository) List(filter domain.TaskFilter) []*domain.Task {
 	return items
 }
 
-func (repo *TaskFileRepository) GetByID(id int, scope domain.AccessScope) (*domain.Task, error) {
+func (repo *TaskFileRepository) GetByID(ctx context.Context, id int, scope domain.AccessScope) (*domain.Task, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	task, ok := repo.items[id]
 	if !ok || (!scope.IsAdmin && scope.UserID != task.UserID) {
@@ -83,9 +96,15 @@ func (repo *TaskFileRepository) GetByID(id int, scope domain.AccessScope) (*doma
 	return task, nil
 }
 
-func (repo *TaskFileRepository) Create(task *domain.Task) (*domain.Task, error) {
+func (repo *TaskFileRepository) Create(ctx context.Context, task *domain.Task) (*domain.Task, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	task.ID = repo.nextID
 	repo.nextID++
@@ -100,9 +119,15 @@ func (repo *TaskFileRepository) Create(task *domain.Task) (*domain.Task, error) 
 	return task, nil
 }
 
-func (repo *TaskFileRepository) Update(task *domain.Task) error {
+func (repo *TaskFileRepository) Update(ctx context.Context, task *domain.Task) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	prev := repo.items[task.ID]
 	repo.items[task.ID] = task
@@ -116,9 +141,15 @@ func (repo *TaskFileRepository) Update(task *domain.Task) error {
 	return nil
 }
 
-func (repo *TaskFileRepository) Delete(task *domain.Task) error {
+func (repo *TaskFileRepository) Delete(ctx context.Context, task *domain.Task) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	prev := task
 	delete(repo.items, task.ID)

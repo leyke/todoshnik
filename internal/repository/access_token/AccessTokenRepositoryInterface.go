@@ -1,12 +1,15 @@
 package accesstoken
 
-import "todoshnik/internal/domain"
+import (
+	"context"
+	"todoshnik/internal/domain"
+)
 
 type AccessTokenRepositoryInterface interface {
-	GetAllByUserID(id int) []*domain.Token
-	GetUserIDByToken(token string) int
-	GetExpiredTokens() []*domain.Token
+	GetAllByUserID(ctx context.Context, id int) []*domain.Token
+	GetUserIDByToken(ctx context.Context, token string) int
+	GetExpiredTokens(ctx context.Context) []*domain.Token
 
-	Create(token *domain.Token) (*domain.Token, error)
-	Delete(token *domain.Token) error
+	Create(ctx context.Context, token *domain.Token) (*domain.Token, error)
+	Delete(ctx context.Context, token *domain.Token) error
 }

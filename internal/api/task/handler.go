@@ -29,10 +29,12 @@ func (api *Handler) List(w http.ResponseWriter, r *http.Request) {
 	status := params.Get("status")
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
-	tasks := api.service.ListTasks(domain.TaskFilter{
-		Status: domain.TaskStatus(status),
-		Scope:  domain.AccessScope{IsAdmin: false, UserID: userID},
-	})
+	tasks := api.service.ListTasks(
+		r.Context(),
+		domain.TaskFilter{
+			Status: domain.TaskStatus(status),
+			Scope:  domain.AccessScope{IsAdmin: false, UserID: userID},
+		})
 
 	fmt.Printf("UserID: %d | Запрошены задачи\n", userID)
 	response.WriteJSON(w, http.StatusOK, tasks)
@@ -51,7 +53,7 @@ func (api *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 
-	task, err := api.service.AddTask(requestDto.Title, userID)
+	task, err := api.service.AddTask(r.Context(), requestDto.Title, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -79,6 +81,7 @@ func (api *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
 	task, err := api.service.UpdateTask(
+		r.Context(),
 		id,
 		requestDto.Title,
 		requestDto.Done,
@@ -106,7 +109,7 @@ func (api *Handler) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
-	task, updateErr := api.service.MarkDone(id, domain.AccessScope{IsAdmin: false, UserID: userID})
+	task, updateErr := api.service.MarkDone(r.Context(), id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if updateErr != nil {
 		if errors.Is(updateErr, apperrors.ErrNotFound) {
 			http.Error(w, updateErr.Error(), http.StatusNotFound)
@@ -128,7 +131,7 @@ func (api *Handler) View(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
-	task, err := api.service.GetTask(id, domain.AccessScope{IsAdmin: false, UserID: userID})
+	task, err := api.service.GetTask(r.Context(), id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -146,7 +149,7 @@ func (api *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(contextkeys.UserIDKey).(int)
-	err = api.service.DeleteTask(id, domain.AccessScope{IsAdmin: false, UserID: userID})
+	err = api.service.DeleteTask(r.Context(), id, domain.AccessScope{IsAdmin: false, UserID: userID})
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)

@@ -1,14 +1,17 @@
 package user
 
-import "todoshnik/internal/domain"
+import (
+	"context"
+	"todoshnik/internal/domain"
+)
 
 type UserRepositoryInterface interface {
-	List() []*domain.User
-	GetByID(id int) (*domain.User, bool)
-	GetByLogin(login string) (*domain.User, bool)
-	GetUserByTgId(id int64) (*domain.User, bool)
+	List(ctx context.Context) []*domain.User
+	GetByID(ctx context.Context, id int) (*domain.User, bool)
+	GetByLogin(ctx context.Context, login string) (*domain.User, bool)
+	GetUserByTgId(ctx context.Context, id int64) (*domain.User, bool)
 
-	Create(user *domain.User) (*domain.User, error)
-	Update(user *domain.User) error
-	Delete(user *domain.User) error
+	Create(ctx context.Context, user *domain.User) (*domain.User, error)
+	Update(ctx context.Context, user *domain.User) error
+	Delete(ctx context.Context, user *domain.User) error
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"time"
@@ -25,7 +26,7 @@ func NewAccessTokenService(repo repository.AccessTokenRepositoryInterface) *Acce
 	}
 }
 
-func (s *AccessTokenService) AddToken(user *domain.User, device domain.DeviceType) (*domain.Token, error) {
+func (s *AccessTokenService) AddToken(ctx context.Context, user *domain.User, device domain.DeviceType) (*domain.Token, error) {
 	token, tokenError := auth.GenerateToken()
 	if tokenError != nil {
 		return nil, tokenError
@@ -46,15 +47,15 @@ func (s *AccessTokenService) AddToken(user *domain.User, device domain.DeviceTyp
 		Device:    device,
 	}
 
-	newToken, err := s.repo.Create(newToken)
+	newToken, err := s.repo.Create(ctx, newToken)
 	if err != nil {
 		return nil, err
 	}
 	return newToken, nil
 }
 
-func (s *AccessTokenService) GetUserID(token string) (int, error) {
-	userID := s.repo.GetUserIDByToken(token)
+func (s *AccessTokenService) GetUserID(ctx context.Context, token string) (int, error) {
+	userID := s.repo.GetUserIDByToken(ctx, token)
 
 	if userID == 0 {
 		return 0, apperrors.ErrNotFound
@@ -63,11 +64,11 @@ func (s *AccessTokenService) GetUserID(token string) (int, error) {
 	return userID, nil
 }
 
-func (s *AccessTokenService) ClearExpiredTokens() int {
-	tokens := s.repo.GetExpiredTokens()
+func (s *AccessTokenService) ClearExpiredTokens(ctx context.Context) int {
+	tokens := s.repo.GetExpiredTokens(ctx)
 	counter := 0
 	for _, token := range tokens {
-		err := s.repo.Delete(token)
+		err := s.repo.Delete(ctx, token)
 		if err != nil {
 			counter++
 		}

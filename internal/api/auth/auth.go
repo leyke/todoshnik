@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	apperrors "todoshnik/internal/errors"
@@ -35,7 +36,7 @@ func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.AddUser(requestDto.Name, requestDto.Login, requestDto.Password)
+	user, err := h.userService.AddUser(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
 	if err != nil {
 		if err == apperrors.ErrConflict {
 			http.Error(w, "Пользователь с таким логином уже существует", http.StatusConflict)
@@ -46,7 +47,7 @@ func (h AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeApi)
+	accessToken, err := h.tokenService.AddToken(r.Context(), user, domain.DeviceTypeApi)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -69,7 +70,7 @@ func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.GetUser(0, requestDto.Login)
+	user, err := h.userService.GetUser(r.Context(), 0, requestDto.Login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -80,7 +81,7 @@ func (h AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeApi)
+	accessToken, err := h.tokenService.AddToken(r.Context(), user, domain.DeviceTypeApi)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -103,13 +104,13 @@ func (h AuthHandler) TgLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.GetUserByTgId(requestDto.TgUserID)
+	user, err := h.userService.GetUserByTgId(r.Context(), requestDto.TgUserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeBot)
+	accessToken, err := h.tokenService.AddToken(r.Context(), user, domain.DeviceTypeBot)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -132,13 +133,13 @@ func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.AddTgUser(requestDto.Name, requestDto.TgUserID)
+	user, err := h.userService.AddTgUser(r.Context(), requestDto.Name, requestDto.TgUserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	accessToken, err := h.tokenService.AddToken(user, domain.DeviceTypeBot)
+	accessToken, err := h.tokenService.AddToken(r.Context(), user, domain.DeviceTypeBot)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -150,13 +151,13 @@ func (h AuthHandler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h AuthHandler) ValidateToken(token string) (*domain.User, error) {
-	userID, err := h.tokenService.GetUserID(token)
+func (h AuthHandler) ValidateToken(ctx context.Context, token string) (*domain.User, error) {
+	userID, err := h.tokenService.GetUserID(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.userService.GetUser(userID, "")
+	user, err := h.userService.GetUser(ctx, userID, "")
 	if err != nil {
 		return nil, err
 	}

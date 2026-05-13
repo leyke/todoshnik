@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"todoshnik/internal/domain"
 
 	"gorm.io/gorm"
@@ -16,16 +17,16 @@ func NewUserDbRepository(db *gorm.DB) *UserDbRepository {
 	}
 }
 
-func (repo *UserDbRepository) List() []*domain.User {
+func (repo *UserDbRepository) List(ctx context.Context) []*domain.User {
 	var result []*domain.User
-	repo.db.Find(result)
+	repo.db.WithContext(ctx).Find(&result)
 
 	return result
 }
 
-func (repo *UserDbRepository) GetByID(id int) (*domain.User, bool) {
+func (repo *UserDbRepository) GetByID(ctx context.Context, id int) (*domain.User, bool) {
 	var item *domain.User
-	result := repo.db.First(&item, id)
+	result := repo.db.WithContext(ctx).First(&item, id)
 	if result.Error != nil {
 		return nil, false
 	}
@@ -33,9 +34,9 @@ func (repo *UserDbRepository) GetByID(id int) (*domain.User, bool) {
 	return item, true
 }
 
-func (repo *UserDbRepository) GetByLogin(login string) (*domain.User, bool) {
+func (repo *UserDbRepository) GetByLogin(ctx context.Context, login string) (*domain.User, bool) {
 	var item *domain.User
-	result := repo.db.First(&item, "login = ?", login)
+	result := repo.db.WithContext(ctx).First(&item, "login = ?", login)
 	if result.Error != nil {
 		return nil, false
 	}
@@ -43,9 +44,9 @@ func (repo *UserDbRepository) GetByLogin(login string) (*domain.User, bool) {
 	return item, true
 }
 
-func (repo *UserDbRepository) GetUserByTgId(userTgId int64) (*domain.User, bool) {
+func (repo *UserDbRepository) GetUserByTgId(ctx context.Context, userTgId int64) (*domain.User, bool) {
 	var item *domain.User
-	result := repo.db.First(&item, "telegram_id = ?", userTgId)
+	result := repo.db.WithContext(ctx).First(&item, "telegram_id = ?", userTgId)
 	if result.Error != nil {
 		return nil, false
 	}
@@ -53,8 +54,8 @@ func (repo *UserDbRepository) GetUserByTgId(userTgId int64) (*domain.User, bool)
 	return item, true
 }
 
-func (repo *UserDbRepository) Create(user *domain.User) (*domain.User, error) {
-	result := repo.db.Create(user)
+func (repo *UserDbRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
+	result := repo.db.WithContext(ctx).Create(user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -62,8 +63,8 @@ func (repo *UserDbRepository) Create(user *domain.User) (*domain.User, error) {
 	return user, nil
 }
 
-func (repo *UserDbRepository) Update(user *domain.User) error {
-	result := repo.db.Save(user)
+func (repo *UserDbRepository) Update(ctx context.Context, user *domain.User) error {
+	result := repo.db.WithContext(ctx).Save(user)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -71,8 +72,8 @@ func (repo *UserDbRepository) Update(user *domain.User) error {
 	return nil
 }
 
-func (repo *UserDbRepository) Delete(user *domain.User) error {
-	result := repo.db.Delete(user)
+func (repo *UserDbRepository) Delete(ctx context.Context, user *domain.User) error {
+	result := repo.db.WithContext(ctx).Delete(user)
 	if result.Error != nil {
 		return result.Error
 	}

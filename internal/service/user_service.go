@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 
 	"todoshnik/internal/auth"
@@ -23,8 +24,8 @@ func NewUserService(repo repository.UserRepositoryInterface) *UserService {
 	}
 }
 
-func (s *UserService) AddUser(name string, login string, password string) (*domain.User, error) {
-	user, _ := s.repo.GetByLogin(login)
+func (s *UserService) AddUser(ctx context.Context, name string, login string, password string) (*domain.User, error) {
+	user, _ := s.repo.GetByLogin(ctx, login)
 	if user != nil {
 		return nil, apperrors.ErrConflict
 	}
@@ -43,15 +44,15 @@ func (s *UserService) AddUser(name string, login string, password string) (*doma
 		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
 	}
 
-	user, err := s.repo.Create(newUser)
+	user, err := s.repo.Create(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (s *UserService) AddTgUser(name string, telegramID int64) (*domain.User, error) {
-	user, _ := s.repo.GetUserByTgId(telegramID)
+func (s *UserService) AddTgUser(ctx context.Context, name string, telegramID int64) (*domain.User, error) {
+	user, _ := s.repo.GetUserByTgId(ctx, telegramID)
 	if user != nil {
 		return user, nil
 	}
@@ -67,19 +68,19 @@ func (s *UserService) AddTgUser(name string, telegramID int64) (*domain.User, er
 		return nil, apperrors.NewValidationErrorFromValidator(ve.(validator.ValidationErrors))
 	}
 
-	user, err := s.repo.Create(newUser)
+	user, err := s.repo.Create(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (s *UserService) ListUsers() []*domain.User {
-	return s.repo.List()
+func (s *UserService) ListUsers(ctx context.Context) []*domain.User {
+	return s.repo.List(ctx)
 }
 
-func (s *UserService) UpdateUser(userID int, name string) (*domain.User, error) {
-	user, errNotFound := s.GetUser(userID, "")
+func (s *UserService) UpdateUser(ctx context.Context, userID int, name string) (*domain.User, error) {
+	user, errNotFound := s.GetUser(ctx, userID, "")
 	if errNotFound != nil {
 		return nil, apperrors.ErrNotFound
 	}
@@ -92,30 +93,30 @@ func (s *UserService) UpdateUser(userID int, name string) (*domain.User, error) 
 		return nil, apperrors.NewValidationErrorFromValidator(validateError.(validator.ValidationErrors))
 	}
 
-	err := s.repo.Update(user)
+	err := s.repo.Update(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (s *UserService) DeleteUser(userID int) error {
-	user, err := s.GetUser(userID, "")
+func (s *UserService) DeleteUser(ctx context.Context, userID int) error {
+	user, err := s.GetUser(ctx, userID, "")
 	if err != nil {
 		return err
 	}
 
-	return s.repo.Delete(user)
+	return s.repo.Delete(ctx, user)
 }
 
-func (s *UserService) GetUser(userID int, login string) (*domain.User, error) {
+func (s *UserService) GetUser(ctx context.Context, userID int, login string) (*domain.User, error) {
 	var user *domain.User
 	var ok bool
 
 	if login != "" {
-		user, ok = s.repo.GetByLogin(login)
+		user, ok = s.repo.GetByLogin(ctx, login)
 	} else if userID != 0 {
-		user, ok = s.repo.GetByID(userID)
+		user, ok = s.repo.GetByID(ctx, userID)
 	}
 
 	if !ok {
@@ -125,8 +126,8 @@ func (s *UserService) GetUser(userID int, login string) (*domain.User, error) {
 	return user, nil
 }
 
-func (s *UserService) GetUserByTgId(userTgID int64) (*domain.User, error) {
-	user, ok := s.repo.GetUserByTgId(userTgID)
+func (s *UserService) GetUserByTgId(ctx context.Context, userTgID int64) (*domain.User, error) {
+	user, ok := s.repo.GetUserByTgId(ctx, userTgID)
 	if !ok {
 		return nil, apperrors.ErrNotFound
 	}

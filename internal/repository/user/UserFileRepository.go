@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"todoshnik/internal/domain"
@@ -34,7 +35,13 @@ func NewUserFileRepository(storage storage.FileStorage[domain.User]) (*UserFileR
 	}, nil
 }
 
-func (repo *UserFileRepository) List() []*domain.User {
+func (repo *UserFileRepository) List(ctx context.Context) []*domain.User {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
 	keys := make([]int, 0, len(repo.items))
 	for k := range repo.items {
 		keys = append(keys, k)
@@ -48,17 +55,29 @@ func (repo *UserFileRepository) List() []*domain.User {
 	return result
 }
 
-func (repo *UserFileRepository) GetByID(id int) (*domain.User, bool) {
+func (repo *UserFileRepository) GetByID(ctx context.Context, id int) (*domain.User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, false
+	default:
+	}
 
 	user, ok := repo.items[id]
 	return user, ok
 }
 
-func (repo *UserFileRepository) GetByLogin(login string) (*domain.User, bool) {
+func (repo *UserFileRepository) GetByLogin(ctx context.Context, login string) (*domain.User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, false
+	default:
+	}
 
 	for _, user := range repo.items {
 		if user.Login == login {
@@ -69,7 +88,13 @@ func (repo *UserFileRepository) GetByLogin(login string) (*domain.User, bool) {
 	return nil, false
 }
 
-func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, bool) {
+func (repo *UserFileRepository) GetUserByTgId(ctx context.Context, userTgId int64) (*domain.User, bool) {
+	select {
+	case <-ctx.Done():
+		return nil, false
+	default:
+	}
+
 	for _, user := range repo.items {
 		if user.TelegramID == userTgId {
 			return user, true
@@ -79,9 +104,15 @@ func (repo *UserFileRepository) GetUserByTgId(userTgId int64) (*domain.User, boo
 	return nil, false
 }
 
-func (repo *UserFileRepository) Create(user *domain.User) (*domain.User, error) {
+func (repo *UserFileRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	user.ID = repo.nextID
 	repo.nextID++
@@ -96,9 +127,15 @@ func (repo *UserFileRepository) Create(user *domain.User) (*domain.User, error) 
 	return user, nil
 }
 
-func (repo *UserFileRepository) Update(user *domain.User) error {
+func (repo *UserFileRepository) Update(ctx context.Context, user *domain.User) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	prev := repo.items[user.ID]
 	repo.items[user.ID] = user
@@ -112,9 +149,15 @@ func (repo *UserFileRepository) Update(user *domain.User) error {
 	return nil
 }
 
-func (repo *UserFileRepository) Delete(user *domain.User) error {
+func (repo *UserFileRepository) Delete(ctx context.Context, user *domain.User) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	prev := user
 	delete(repo.items, user.ID)

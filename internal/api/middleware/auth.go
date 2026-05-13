@@ -19,7 +19,7 @@ func Auth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
 				return
 			}
 
-			user, err := ah.ValidateToken(tokenString)
+			user, err := ah.ValidateToken(r.Context(), tokenString)
 			if err != nil {
 				fmt.Printf("Ошибка валидации токена: %v\n", err)
 				http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)

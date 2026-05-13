@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,6 +24,8 @@ func NewCLIHandler(s *service.TaskService, ts *service.AccessTokenService) *CLIH
 }
 
 func (cli *CLIHandler) Run() {
+	ctx := context.Background()
+
 	if len(os.Args) < 2 {
 		fmt.Println("Не указана команда")
 		fmt.Println("Использование: go run main.go add | list | delete <Название задачи>|<ID задачи>")
@@ -42,7 +45,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка получения ID задачи: %v\n", err)
 			break
 		}
-		task, err := cli.service.AddTask(newTitle, taskId)
+		task, err := cli.service.AddTask(ctx, newTitle, taskId)
 		if err != nil {
 			fmt.Printf("Ошибка при добавлении задачи: %v\n", err)
 			break
@@ -54,6 +57,7 @@ func (cli *CLIHandler) Run() {
 		listCmd.Parse(os.Args[2:])
 
 		tasks := cli.service.ListTasks(
+			ctx,
 			domain.TaskFilter{
 				Status: domain.TaskStatus(*status),
 				Scope:  domain.AccessScope{IsAdmin: true},
@@ -71,7 +75,7 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		_, err = cli.service.MarkDone(taskId, domain.AccessScope{IsAdmin: true})
+		_, err = cli.service.MarkDone(ctx, taskId, domain.AccessScope{IsAdmin: true})
 		if err != nil {
 			fmt.Printf("Ошибка пометки задачи как выполненной: %v\n", err)
 		}
@@ -81,13 +85,13 @@ func (cli *CLIHandler) Run() {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 			break
 		}
-		err = cli.service.DeleteTask(taskId, domain.AccessScope{IsAdmin: true})
+		err = cli.service.DeleteTask(ctx, taskId, domain.AccessScope{IsAdmin: true})
 		if err != nil {
 			fmt.Printf("Ошибка удаления задачи: %v\n", err)
 		}
 
 	case "clear-tokens":
-		deleted := cli.tokenService.ClearExpiredTokens()
+		deleted := cli.tokenService.ClearExpiredTokens(ctx)
 		fmt.Printf("Удалены токены: %v\n", deleted)
 	default:
 		fmt.Printf("Неизвестная команда: %s\n", command)

@@ -1,6 +1,7 @@
 package accesstoken
 
 import (
+	"context"
 	"sync"
 	"time"
 	"todoshnik/internal/domain"
@@ -34,9 +35,15 @@ func NewAccessTokenFileRepository(storage storage.FileStorage[domain.Token]) (*A
 	}, nil
 }
 
-func (repo *AccessTokenFileRepository) GetAllByUserID(userID int) []*domain.Token {
+func (repo *AccessTokenFileRepository) GetAllByUserID(ctx context.Context, userID int) []*domain.Token {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 
 	result := make([]*domain.Token, 0, len(repo.items))
 	for _, token := range repo.items {
@@ -47,9 +54,15 @@ func (repo *AccessTokenFileRepository) GetAllByUserID(userID int) []*domain.Toke
 	return result
 }
 
-func (repo *AccessTokenFileRepository) GetUserIDByToken(hash string) int {
+func (repo *AccessTokenFileRepository) GetUserIDByToken(ctx context.Context, hash string) int {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return 0
+	default:
+	}
 
 	for _, item := range repo.items {
 		if item.Hash == hash {
@@ -59,9 +72,15 @@ func (repo *AccessTokenFileRepository) GetUserIDByToken(hash string) int {
 	return 0
 }
 
-func (repo *AccessTokenFileRepository) GetExpiredTokens() []*domain.Token {
+func (repo *AccessTokenFileRepository) GetExpiredTokens(ctx context.Context) []*domain.Token {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 
 	localTime := time.Now().Unix()
 	result := make([]*domain.Token, 0, len(repo.items))
@@ -73,9 +92,15 @@ func (repo *AccessTokenFileRepository) GetExpiredTokens() []*domain.Token {
 	return result
 }
 
-func (repo *AccessTokenFileRepository) Create(token *domain.Token) (*domain.Token, error) {
+func (repo *AccessTokenFileRepository) Create(ctx context.Context, token *domain.Token) (*domain.Token, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	token.ID = repo.nextID
 	repo.nextID++
@@ -90,9 +115,15 @@ func (repo *AccessTokenFileRepository) Create(token *domain.Token) (*domain.Toke
 	return token, nil
 }
 
-func (repo *AccessTokenFileRepository) Delete(token *domain.Token) error {
+func (repo *AccessTokenFileRepository) Delete(ctx context.Context, token *domain.Token) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	prev := token
 	delete(repo.items, token.ID)
