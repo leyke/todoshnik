@@ -56,7 +56,10 @@ func (s *Service) Add(ctx context.Context, user *user.User, device auth.DeviceTy
 func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
 	hash := HashToken(rawToken, os.Getenv("SALT"))
 
-	token := s.repo.GetByHash(ctx, hash)
+	token, err := s.repo.GetByHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	if token == nil {
 		return nil, apperrors.ErrNotFound
@@ -66,7 +69,10 @@ func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
 }
 
 func (s *Service) ClearExpiredTokens(ctx context.Context) int {
-	tokens := s.repo.GetExpiredTokens(ctx)
+	tokens, err := s.repo.GetExpiredTokens(ctx)
+	if err != nil {
+		return 0
+	}
 	counter := 0
 	for _, token := range tokens {
 		err := s.repo.Delete(ctx, token)

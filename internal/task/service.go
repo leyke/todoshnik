@@ -51,13 +51,11 @@ func (s *Service) Update(ctx context.Context, taskId int, title string, done boo
 	updated.Title = title
 	updated.Done = done
 
-	err = validateTask(&updated)
-	if err != nil {
+	if err := validateTask(&updated); err != nil {
 		return nil, err
 	}
 
-	err = s.repo.Update(ctx, &updated)
-	if err != nil {
+	if err := s.repo.Update(ctx, &updated); err != nil {
 		return nil, err
 	}
 
@@ -79,13 +77,13 @@ func (s *Service) MarkDone(ctx context.Context, taskId int, scope identity.Acces
 		return nil, err
 	}
 
-	task.Done = !task.Done
-	err = s.repo.Update(ctx, task)
-	if err != nil {
+	updated := *task
+	updated.Done = !task.Done
+	if err = s.repo.Update(ctx, &updated); err != nil {
 		return nil, err
 	}
 
-	return task, nil
+	return &updated, nil
 }
 
 func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScope) (*Task, error) {

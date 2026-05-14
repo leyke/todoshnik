@@ -69,7 +69,7 @@ func (s *Service) AddFromTg(ctx context.Context, name string, telegramID int64) 
 	return user, nil
 }
 
-func (s *Service) List(ctx context.Context) []*User {
+func (s *Service) List(ctx context.Context) ([]*User, error) {
 	return s.repo.List(ctx)
 }
 
@@ -79,19 +79,18 @@ func (s *Service) Update(ctx context.Context, userID int, name string) (*User, e
 		return nil, apperrors.ErrNotFound
 	}
 
-	prev := user
-	user.Name = name
-	ve := validateUser(user)
-	if ve != nil {
-		user.Name = prev.Name
-		return nil, ve
-	}
+	updated := *user
+	updated.Name = name
 
-	err := s.repo.Update(ctx, user)
-	if err != nil {
+	if err := validateUser(&updated); err != nil {
 		return nil, err
 	}
-	return user, nil
+
+	if err := s.repo.Update(ctx, &updated); err != nil {
+		return nil, err
+	}
+
+	return &updated, nil
 }
 
 func (s *Service) Delete(ctx context.Context, userID int) error {
@@ -105,15 +104,19 @@ func (s *Service) Delete(ctx context.Context, userID int) error {
 
 func (s *Service) Get(ctx context.Context, userID int, login string) (*User, error) {
 	var user *User
-	var ok bool
+	var err error
 
 	if login != "" {
-		user, ok = s.repo.GetByLogin(ctx, login)
+		user, err = s.repo.GetByLogin(ctx, login)
 	} else if userID != 0 {
-		user, ok = s.repo.GetByID(ctx, userID)
+		user, err = s.repo.GetByID(ctx, userID)
 	}
 
-	if !ok {
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
 		return nil, apperrors.ErrNotFound
 	}
 
@@ -121,11 +124,13 @@ func (s *Service) Get(ctx context.Context, userID int, login string) (*User, err
 }
 
 func (s *Service) GetByTgId(ctx context.Context, userTgID int64) (*User, error) {
-	user, ok := s.repo.GetByTgId(ctx, userTgID)
-	if !ok {
+	user, err := s.repo.GetByTgId(ctx, userTgID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
 		return nil, apperrors.ErrNotFound
 	}
-
 	return user, nil
 }
 

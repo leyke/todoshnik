@@ -34,13 +34,13 @@ func NewFileRepository(storage storage.FileStorage[Token]) (*FileRepository, err
 	}, nil
 }
 
-func (repo *FileRepository) GetAllByUserID(ctx context.Context, userID int) []*Token {
+func (repo *FileRepository) GetAllByUserID(ctx context.Context, userID int) ([]*Token, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return nil
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -50,35 +50,35 @@ func (repo *FileRepository) GetAllByUserID(ctx context.Context, userID int) []*T
 			result = append(result, token)
 		}
 	}
-	return result
+	return result, nil
 }
 
-func (repo *FileRepository) GetByHash(ctx context.Context, hash string) *Token {
+func (repo *FileRepository) GetByHash(ctx context.Context, hash string) (*Token, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return nil
+		return nil, ctx.Err()
 	default:
 	}
 
 	for _, item := range repo.items {
 		if item.Hash == hash {
 			copy := *item
-			return &copy
+			return &copy, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (repo *FileRepository) GetExpiredTokens(ctx context.Context) []*Token {
+func (repo *FileRepository) GetExpiredTokens(ctx context.Context) ([]*Token, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return nil
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -89,7 +89,7 @@ func (repo *FileRepository) GetExpiredTokens(ctx context.Context) []*Token {
 			result = append(result, token)
 		}
 	}
-	return result
+	return result, nil
 }
 
 func (repo *FileRepository) Create(ctx context.Context, token *Token) (*Token, error) {

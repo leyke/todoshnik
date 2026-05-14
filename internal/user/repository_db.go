@@ -16,41 +16,43 @@ func NewDbRepository(db *gorm.DB) *DBRepository {
 	}
 }
 
-func (repo *DBRepository) List(ctx context.Context) []*User {
+func (repo *DBRepository) List(ctx context.Context) ([]*User, error) {
 	var result []*User
-	repo.db.WithContext(ctx).Find(&result)
-
-	return result
+	err := repo.db.WithContext(ctx).Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (repo *DBRepository) GetByID(ctx context.Context, id int) (*User, bool) {
+func (repo *DBRepository) GetByID(ctx context.Context, id int) (*User, error) {
 	var item *User
 	result := repo.db.WithContext(ctx).First(&item, id)
 	if result.Error != nil {
-		return nil, false
+		return nil, result.Error
 	}
 
-	return item, true
+	return item, nil
 }
 
-func (repo *DBRepository) GetByLogin(ctx context.Context, login string) (*User, bool) {
+func (repo *DBRepository) GetByLogin(ctx context.Context, login string) (*User, error) {
 	var item *User
 	result := repo.db.WithContext(ctx).First(&item, "login = ?", login)
 	if result.Error != nil {
-		return nil, false
+		return nil, result.Error
 	}
 
-	return item, true
+	return item, nil
 }
 
-func (repo *DBRepository) GetByTgId(ctx context.Context, userTgId int64) (*User, bool) {
+func (repo *DBRepository) GetByTgId(ctx context.Context, userTgId int64) (*User, error) {
 	var item *User
 	result := repo.db.WithContext(ctx).First(&item, "telegram_id = ?", userTgId)
 	if result.Error != nil {
-		return nil, false
+		return nil, result.Error
 	}
 
-	return item, true
+	return item, nil
 }
 
 func (repo *DBRepository) Create(ctx context.Context, user *User) (*User, error) {

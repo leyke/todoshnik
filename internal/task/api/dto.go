@@ -1,11 +1,11 @@
 package api
 
 type CreateTaskRequest struct {
-	Title  string `json:"title" validate:"required,min=3"`
-	UserID string `json:"userId" validate:"required"`
+	Title  string `json:"title"`
+	UserID string `json:"userId"`
 }
 
 type UpdateTaskRequest struct {
-	Title string `json:"title" validate:"required,min=3"`
+	Title string `json:"title"`
 	Done  bool   `json:"done"`
 }

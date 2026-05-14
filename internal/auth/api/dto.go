@@ -1,14 +1,14 @@
 package api
 
 type UserSignUpRequestDto struct {
-	Login    string `json:"login" validate:"required,min=3"`
-	Password string `json:"password" validate:"required,min=3"`
-	Name     string `json:"name" validate:"required,min=3"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
 }
 
 type UserSignInRequestDto struct {
-	Login    string `json:"login" validate:"required,min=3"`
-	Password string `json:"password" validate:"required,min=3"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 type AuthResponseDto struct {
