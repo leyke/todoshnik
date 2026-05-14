@@ -26,7 +26,7 @@ const botTokenTtl time.Duration = 4 * time.Hour
 
 type BotHandler struct {
 	TaskHandler  *task.Handler
-	UserHandler  *authbot.Handler
+	AuthHandler  *authbot.Handler
 	StateStorage *session.StateStorage
 	cache        *redis.Client
 	api          *client.ApiClient
@@ -38,7 +38,7 @@ func NewBotHandler(container *app.App, bot *tgbotapi.BotAPI) *BotHandler {
 	apiClient := client.NewApiClient(os.Getenv("API_URL"))
 	return &BotHandler{
 		TaskHandler:  task.NewHandler(apiClient, container.Logger),
-		UserHandler:  authbot.NewHandler(apiClient),
+		AuthHandler:  authbot.NewHandler(apiClient),
 		StateStorage: session.NewStateStorage(container.Cache),
 		cache:        container.Cache,
 		api:          apiClient,
@@ -290,7 +290,10 @@ func (bh BotHandler) handleAuth(ctx context.Context, user *tgbotapi.User) contex
 	}
 
 	// попытка сгенерировать через апи
-	token, err := bh.UserHandler.GetToken(ctx, user)
+	token, err := bh.AuthHandler.GetToken(ctx, authbot.TgLoginRequestDto{
+		TgUserID: user.ID,
+		Name:     user.UserName,
+	})
 	if err != nil {
 		return ctx
 	}
@@ -304,7 +307,10 @@ func (bh BotHandler) handleAuth(ctx context.Context, user *tgbotapi.User) contex
 func (bh BotHandler) handleWelcome(ctx context.Context, user *tgbotapi.User) error {
 	tokenCacheKey := "user:" + strconv.FormatInt(user.ID, 10) + ":tg-api-token-key"
 
-	token, err := bh.UserHandler.SignInUser(ctx, user)
+	token, err := bh.AuthHandler.SignInUser(ctx, authbot.TgLoginRequestDto{
+		TgUserID: user.ID,
+		Name:     user.UserName,
+	})
 	if err != nil {
 		return err
 	}

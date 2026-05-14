@@ -1,0 +1,724 @@
+=== access_token ===
+=== access_token.go ===
+package accesstoken
+
+type DeviceType string
+
+const (
+	DeviceTypeBot DeviceType = "bot"
+	DeviceTypeApi DeviceType = "api"
+)
+
+type Token struct {
+	ID        int
+	UserID    int        `json:"user_id"`
+	Hash      string     `json:"hash"`
+	Device    DeviceType `json:"Device"`
+	ExpiresAt int64      `json:"expires_at"`
+}
+
+=== filestorage.go ===
+package accesstoken
+
+import (
+	"os"
+	"todoshnik/internal/storage"
+)
+
+func NewTokenStorage() storage.FileStorage[Token] {
+	storagePath := os.Getenv("TMP_DIR") + "/tokens.json"
+	return storage.NewFileStorage[Token](storagePath)
+}
+
+=== helper.go ===
+package accesstoken
+
+import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+)
+
+func GenerateToken() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	token := base64.RawURLEncoding.EncodeToString(b)
+
+	return token, nil
+}
+
+func HashToken(token string, secret string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(token))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+=== repository.go ===
+package accesstoken
+
+import (
+	"context"
+)
+
+type Repository interface {
+	GetAllByUserID(ctx context.Context, id int) []*Token
+	GetByHash(ctx context.Context, hash string) *Token
+	GetExpiredTokens(ctx context.Context) []*Token
+
+	Create(ctx context.Context, token *Token) (*Token, error)
+	Delete(ctx context.Context, token *Token) error
+}
+
+=== repository_db.go ===
+package accesstoken
+
+import (
+	"context"
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type DBRepository struct {
+	db *gorm.DB
+}
+
+func NewDbRepository(db *gorm.DB) *DBRepository {
+	return &DBRepository{
+		db: db,
+	}
+}
+
+func (repo *DBRepository) GetAllByUserID(ctx context.Context, userID int) []*Token {
+	var result []*Token
+	repo.db.WithContext(ctx).Where("user_id = ?", userID).Find(&result)
+	return result
+}
+
+func (repo *DBRepository) GetByHash(ctx context.Context, hash string) *Token {
+	var token *Token
+	repo.db.WithContext(ctx).Where("hash = ?", hash).First(&token)
+	return token
+}
+
+func (repo *DBRepository) GetExpiredTokens(ctx context.Context) []*Token {
+	var result []*Token
+	localTime := time.Now().Unix()
+	repo.db.WithContext(ctx).Where("expires_at < ?", localTime).Find(&result)
+	return result
+}
+
+func (repo *DBRepository) Create(ctx context.Context, token *Token) (*Token, error) {
+	result := repo.db.WithContext(ctx).Create(token)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return token, nil
+}
+
+func (repo *DBRepository) Delete(ctx context.Context, token *Token) error {
+	result := repo.db.WithContext(ctx).Delete(token)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
+=== repository_file.go ===
+package accesstoken
+
+import (
+	"context"
+	"sync"
+	"time"
+	"todoshnik/internal/storage"
+)
+
+type FileRepository struct {
+	mu      sync.RWMutex
+	storage storage.FileStorage[Token]
+	items   map[int]*Token
+	nextID  int
+}
+
+func NewFileRepository(storage storage.FileStorage[Token]) (*FileRepository, error) {
+	items, err := storage.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	maxID := 0
+	for _, item := range items {
+		if item.ID > maxID {
+			maxID = item.ID
+		}
+	}
+
+	return &FileRepository{
+		storage: storage,
+		items:   items,
+		nextID:  maxID + 1,
+	}, nil
+}
+
+func (repo *FileRepository) GetAllByUserID(ctx context.Context, userID int) []*Token {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
+	result := make([]*Token, 0, len(repo.items))
+	for _, token := range repo.items {
+		if token.UserID == userID {
+			result = append(result, token)
+		}
+	}
+	return result
+}
+
+func (repo *FileRepository) GetByHash(ctx context.Context, hash string) *Token {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
+	for _, item := range repo.items {
+		if item.Hash == hash {
+			copy := *item
+			return &copy
+		}
+	}
+	return nil
+}
+
+func (repo *FileRepository) GetExpiredTokens(ctx context.Context) []*Token {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
+	localTime := time.Now().Unix()
+	result := make([]*Token, 0, len(repo.items))
+	for _, token := range repo.items {
+		if token.ExpiresAt < localTime {
+			result = append(result, token)
+		}
+	}
+	return result
+}
+
+func (repo *FileRepository) Create(ctx context.Context, token *Token) (*Token, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	token.ID = repo.nextID
+	repo.nextID++
+
+	repo.items[token.ID] = token
+
+	err := repo.storage.Save(repo.items)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (repo *FileRepository) Delete(ctx context.Context, token *Token) error {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	prev := token
+	delete(repo.items, token.ID)
+
+	err := repo.storage.Save(repo.items)
+	if err != nil {
+		repo.items[token.ID] = prev
+		return err
+	}
+
+	return nil
+}
+
+=== service.go ===
+package accesstoken
+
+import (
+	"context"
+	"os"
+	"strconv"
+	"time"
+
+	apperrors "todoshnik/internal/errors"
+	"todoshnik/internal/user"
+)
+
+const (
+	DefaultTokenTtl int = 14 // количество дней жизни токена
+)
+
+type Service struct {
+	repo Repository
+}
+
+func NewService(repo Repository) *Service {
+	return &Service{
+		repo: repo,
+	}
+}
+
+func (s *Service) Add(ctx context.Context, user *user.User, device DeviceType) (*Token, error) {
+	token, tokenError := GenerateToken()
+	if tokenError != nil {
+		return nil, tokenError
+	}
+
+	hash := HashToken(token, os.Getenv("SALT"))
+
+	tokenTtl, tokenError := strconv.Atoi(os.Getenv("TOKEN_TTL_DAYS"))
+	if tokenError != nil {
+		tokenTtl = DefaultTokenTtl
+	}
+	localTime := time.Now().AddDate(0, 0, tokenTtl).Unix()
+
+	newToken := &Token{
+		UserID:    user.ID,
+		Hash:      hash,
+		ExpiresAt: localTime,
+		Device:    device,
+	}
+
+	newToken, err := s.repo.Create(ctx, newToken)
+	if err != nil {
+		return nil, err
+	}
+	return newToken, nil
+}
+
+func (s *Service) Get(ctx context.Context, hash string) (*Token, error) {
+	token := s.repo.GetByHash(ctx, hash)
+
+	if token == nil {
+		return nil, apperrors.ErrNotFound
+	}
+
+	return token, nil
+}
+
+func (s *Service) ClearExpiredTokens(ctx context.Context) int {
+	tokens := s.repo.GetExpiredTokens(ctx)
+	counter := 0
+	for _, token := range tokens {
+		err := s.repo.Delete(ctx, token)
+		if err != nil {
+			counter++
+		}
+	}
+
+	return counter
+}
+
+
+=== api ===
+=== dto.go ===
+package api
+
+type UserSignUpRequestDto struct {
+	Login    string `json:"login" validate:"required,min=3"`
+	Password string `json:"password" validate:"required,min=3"`
+	Name     string `json:"name" validate:"required,min=3"`
+}
+
+type UserSignInRequestDto struct {
+	Login    string `json:"login" validate:"required,min=3"`
+	Password string `json:"password" validate:"required,min=3"`
+}
+
+type AuthResponseDto struct {
+	UserID      int    `json:"user_id"`
+	AccessToken string `json:"access_token"`
+}
+
+type TgLoginRequestDto struct {
+	TgUserID int64  `json:"tg_user_id"`
+	Name     string `json:"name"`
+}
+
+=== get_user_by_token.go ===
+package api
+
+import (
+	"context"
+	"todoshnik/internal/user"
+)
+
+func (h Handler) GetUserByToken(ctx context.Context, hash string) (*user.User, error) {
+	token, err := h.tokenService.Get(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := h.userService.Get(ctx, token.UserID, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+=== handler.go ===
+package api
+
+import (
+	accesstoken "todoshnik/internal/auth/access_token"
+	"todoshnik/internal/user"
+)
+
+type Handler struct {
+	userService  *user.Service
+	tokenService *accesstoken.Service
+}
+
+func NewHandler(userService *user.Service, tokenService *accesstoken.Service) *Handler {
+	return &Handler{
+		userService:  userService,
+		tokenService: tokenService,
+	}
+}
+
+=== sign_in.go ===
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+	"todoshnik/internal/api/response"
+	"todoshnik/internal/auth"
+	accesstoken "todoshnik/internal/auth/access_token"
+)
+
+func (h Handler) SignIn(w http.ResponseWriter, r *http.Request) {
+	var requestDto UserSignInRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.Get(r.Context(), 0, requestDto.Login)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !auth.ComparePassword(user.PasswordHash, requestDto.Password) {
+		http.Error(w, "Неверный логин или пароль", http.StatusUnauthorized)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, accesstoken.DeviceTypeApi)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+=== sign_up.go ===
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+	"todoshnik/internal/api/response"
+	accesstoken "todoshnik/internal/auth/access_token"
+	apperrors "todoshnik/internal/errors"
+)
+
+func (h Handler) SignUp(w http.ResponseWriter, r *http.Request) {
+	var requestDto UserSignUpRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
+	if err != nil {
+		if err == apperrors.ErrConflict {
+			http.Error(w, "Пользователь с таким логином уже существует", http.StatusConflict)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, accesstoken.DeviceTypeApi)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+=== tg_auto_reg.go ===
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+	"todoshnik/internal/api/response"
+	accesstoken "todoshnik/internal/auth/access_token"
+)
+
+func (h Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
+	var requestDto TgLoginRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.AddFromTg(r.Context(), requestDto.Name, requestDto.TgUserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, accesstoken.DeviceTypeBot)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+=== tg_login.go ===
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+	"todoshnik/internal/api/response"
+	accesstoken "todoshnik/internal/auth/access_token"
+)
+
+func (h Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
+	var requestDto TgLoginRequestDto
+	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
+		if err.Error() == "EOF" {
+			http.Error(w, "Пустой запрос", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.GetByTgId(r.Context(), requestDto.TgUserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, accesstoken.DeviceTypeBot)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken.Hash,
+	})
+}
+
+
+=== bot ===
+=== dto.go ===
+package bot
+
+type TgLoginRequestDto struct {
+	TgUserID int64  `json:"tg_user_id"`
+	Name     string `json:"name"`
+}
+
+type UserAuthInfoResponseDto struct {
+	UserID      int    `json:"user_id"`
+	AccessToken string `json:"access_token"`
+}
+
+=== get_token.go ===
+package bot
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+)
+
+func (h Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
+	response, err := h.api.Post(
+		ctx,
+		"/auth/tg/login",
+		tgUser,
+	)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	var responseInfo UserAuthInfoResponseDto
+
+	err = json.NewDecoder(response.Body).Decode(&responseInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if responseInfo.AccessToken != "" {
+		return responseInfo.AccessToken, nil
+	}
+
+	return "", fmt.Errorf(
+		"Ошибка получения токена из: %v",
+		responseInfo,
+	)
+}
+
+=== handler.go ===
+package bot
+
+import (
+	"todoshnik/internal/client"
+)
+
+type Handler struct {
+	api *client.ApiClient
+}
+
+func NewHandler(api *client.ApiClient) *Handler {
+	return &Handler{api: api}
+}
+
+=== sign_in_user.go ===
+package bot
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+)
+
+func (h Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
+	response, err := h.api.Post(
+		ctx,
+		"/auth/tg/auto-reg",
+		tgUser,
+	)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	var responseInfo UserAuthInfoResponseDto
+
+	err = json.NewDecoder(response.Body).Decode(&responseInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if responseInfo.AccessToken != "" {
+		return responseInfo.AccessToken, nil
+	}
+
+	return "", fmt.Errorf(
+		"Ошибка получения токена из: %v",
+		responseInfo,
+	)
+}
+
+
+=== config.go ===
+package auth
+
+type Config struct {
+	Salt string
+	Ttl  int
+}
+
+=== helper.go ===
+package auth
+
+import (
+	"golang.org/x/crypto/bcrypt"
+)
+
+func HashPassword(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hash)
+}
+
+func ComparePassword(hash string, input string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return false
+	}
+
+	return true
+}
+

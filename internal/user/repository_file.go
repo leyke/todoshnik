@@ -97,6 +97,9 @@ func (repo *FileRepository) GetByLogin(ctx context.Context, login string) (*User
 }
 
 func (repo *FileRepository) GetByTgId(ctx context.Context, userTgId int64) (*User, bool) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
 	select {
 	case <-ctx.Done():
 		return nil, false

@@ -47,23 +47,21 @@ func (s *Service) Update(ctx context.Context, taskId int, title string, done boo
 		return nil, err
 	}
 
-	prev := *task
-	task.Title = title
-	task.Done = done
+	updated := *task
+	updated.Title = title
+	updated.Done = done
 
-	err = validateTask(task)
-	if err != nil {
-		task.Title = prev.Title
-		task.Done = prev.Done
-		return nil, err
-	}
-
-	err = s.repo.Update(ctx, task)
+	err = validateTask(&updated)
 	if err != nil {
 		return nil, err
 	}
 
-	return task, nil
+	err = s.repo.Update(ctx, &updated)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updated, nil
 }
 
 func (s *Service) Delete(ctx context.Context, taskId int, scope identity.AccessScope) error {

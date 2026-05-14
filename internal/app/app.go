@@ -3,10 +3,9 @@ package app
 import (
 	"log"
 	"os"
+	"todoshnik/internal/auth/token"
 	"todoshnik/internal/infrastructure/db"
 	rdb "todoshnik/internal/infrastructure/redis"
-	tokenrepo "todoshnik/internal/repository/access_token"
-	"todoshnik/internal/service"
 	"todoshnik/internal/task"
 	"todoshnik/internal/user"
 
@@ -17,7 +16,7 @@ import (
 type App struct {
 	TaskService  *task.Service
 	UserService  *user.Service
-	TokenService *service.AccessTokenService
+	TokenService *token.Service
 	Logger       *log.Logger
 	LogFile      *os.File
 	Cache        *redis.Client
@@ -41,12 +40,12 @@ func InitApp(logFileName string) *App {
 	// Репозитории
 	taskRepo := task.NewDbRepository(dataBase)
 	userRepo := user.NewDbRepository(dataBase)
-	tokenRepo := tokenrepo.NewAccessTokenDbRepository(dataBase)
+	tokenRepo := token.NewDbRepository(dataBase)
 
 	return &App{
 		TaskService:  task.NewService(taskRepo),
 		UserService:  user.NewService(userRepo),
-		TokenService: service.NewAccessTokenService(tokenRepo),
+		TokenService: token.NewService(tokenRepo),
 		Logger:       log,
 		LogFile:      logFile,
 		Cache:        redisBase,

@@ -1,21 +1,20 @@
-package accesstoken
+package token
 
 import (
 	"context"
 	"sync"
 	"time"
-	"todoshnik/internal/domain"
 	"todoshnik/internal/storage"
 )
 
-type AccessTokenFileRepository struct {
+type FileRepository struct {
 	mu      sync.RWMutex
-	storage storage.FileStorage[domain.Token]
-	items   map[int]*domain.Token
+	storage storage.FileStorage[Token]
+	items   map[int]*Token
 	nextID  int
 }
 
-func NewAccessTokenFileRepository(storage storage.FileStorage[domain.Token]) (*AccessTokenFileRepository, error) {
+func NewFileRepository(storage storage.FileStorage[Token]) (*FileRepository, error) {
 	items, err := storage.Load()
 	if err != nil {
 		return nil, err
@@ -28,14 +27,14 @@ func NewAccessTokenFileRepository(storage storage.FileStorage[domain.Token]) (*A
 		}
 	}
 
-	return &AccessTokenFileRepository{
+	return &FileRepository{
 		storage: storage,
 		items:   items,
 		nextID:  maxID + 1,
 	}, nil
 }
 
-func (repo *AccessTokenFileRepository) GetAllByUserID(ctx context.Context, userID int) []*domain.Token {
+func (repo *FileRepository) GetAllByUserID(ctx context.Context, userID int) []*Token {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -45,7 +44,7 @@ func (repo *AccessTokenFileRepository) GetAllByUserID(ctx context.Context, userI
 	default:
 	}
 
-	result := make([]*domain.Token, 0, len(repo.items))
+	result := make([]*Token, 0, len(repo.items))
 	for _, token := range repo.items {
 		if token.UserID == userID {
 			result = append(result, token)
@@ -54,25 +53,26 @@ func (repo *AccessTokenFileRepository) GetAllByUserID(ctx context.Context, userI
 	return result
 }
 
-func (repo *AccessTokenFileRepository) GetUserIDByToken(ctx context.Context, hash string) int {
+func (repo *FileRepository) GetByHash(ctx context.Context, hash string) *Token {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return 0
+		return nil
 	default:
 	}
 
 	for _, item := range repo.items {
 		if item.Hash == hash {
-			return item.UserID
+			copy := *item
+			return &copy
 		}
 	}
-	return 0
+	return nil
 }
 
-func (repo *AccessTokenFileRepository) GetExpiredTokens(ctx context.Context) []*domain.Token {
+func (repo *FileRepository) GetExpiredTokens(ctx context.Context) []*Token {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -83,7 +83,7 @@ func (repo *AccessTokenFileRepository) GetExpiredTokens(ctx context.Context) []*
 	}
 
 	localTime := time.Now().Unix()
-	result := make([]*domain.Token, 0, len(repo.items))
+	result := make([]*Token, 0, len(repo.items))
 	for _, token := range repo.items {
 		if token.ExpiresAt < localTime {
 			result = append(result, token)
@@ -92,7 +92,7 @@ func (repo *AccessTokenFileRepository) GetExpiredTokens(ctx context.Context) []*
 	return result
 }
 
-func (repo *AccessTokenFileRepository) Create(ctx context.Context, token *domain.Token) (*domain.Token, error) {
+func (repo *FileRepository) Create(ctx context.Context, token *Token) (*Token, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -115,7 +115,7 @@ func (repo *AccessTokenFileRepository) Create(ctx context.Context, token *domain
 	return token, nil
 }
 
-func (repo *AccessTokenFileRepository) Delete(ctx context.Context, token *domain.Token) error {
+func (repo *FileRepository) Delete(ctx context.Context, token *Token) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"todoshnik/internal/auth/token"
 	"todoshnik/internal/identity"
-	"todoshnik/internal/service"
 	"todoshnik/internal/task"
 )
 
 type CLIHandler struct {
 	service      *task.Service
-	tokenService *service.AccessTokenService
+	tokenService *token.Service
 }
 
-func NewCLIHandler(s *task.Service, ts *service.AccessTokenService) *CLIHandler {
+func NewCLIHandler(s *task.Service, ts *token.Service) *CLIHandler {
 	return &CLIHandler{
 		service:      s,
 		tokenService: ts,

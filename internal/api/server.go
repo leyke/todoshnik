@@ -6,21 +6,21 @@ import (
 	"net/http"
 	"os"
 
-	"todoshnik/internal/api/auth"
 	"todoshnik/internal/app"
+	authapi "todoshnik/internal/auth/api"
 	taskapi "todoshnik/internal/task/api"
 )
 
 type APIHandler struct {
 	taskHandler *taskapi.Handler
-	authHandler *auth.AuthHandler
+	authHandler *authapi.Handler
 	logger      *log.Logger
 }
 
 func NewAPIHandler(container *app.App) *APIHandler {
 	return &APIHandler{
 		taskHandler: taskapi.NewHandler(container.TaskService),
-		authHandler: auth.NewAuthHandler(container.UserService, container.TokenService),
+		authHandler: authapi.NewHandler(container.UserService, container.TokenService),
 		logger:      container.Logger,
 	}
 }
