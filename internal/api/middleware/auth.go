@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
-	"todoshnik/internal/api/contextkeys"
 	authapi "todoshnik/internal/auth/api"
+	authcontext "todoshnik/internal/auth/context"
 )
 
 func Auth(ah *authapi.Handler) func(http.Handler) http.Handler {
@@ -26,8 +25,7 @@ func Auth(ah *authapi.Handler) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, user.ID)
-			ctx = context.WithValue(ctx, contextkeys.UserKey, user)
+			ctx := authcontext.SetUser(r.Context(), user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

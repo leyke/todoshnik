@@ -13,6 +13,8 @@ var (
 	ErrNotValidate = errors.New("not validate")
 	ErrConflict    = errors.New("conflict")
 	ErrUnAuth      = errors.New("unauthorized")
+	ErrEmptyBody   = errors.New("empty request body")
+	ErrInvalidJSON = errors.New("invalid json")
 )
 
 type ValidationError struct {

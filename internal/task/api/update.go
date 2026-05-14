@@ -1,29 +1,34 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
+	authcontext "todoshnik/internal/auth/context"
 )
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	var requestDto UpdateTaskRequest
+	var requestDto *UpdateTaskRequest
 	id, err := getTaskID(r)
 	if err != nil {
 		http.Error(w, "Неверный ID задачи", http.StatusBadRequest)
 		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
-		if err.Error() == "EOF" {
-			http.Error(w, "Пустой запрос", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+
+	requestDto, err = request.DecodeJSON[UpdateTaskRequest](r)
+	if err != nil {
+		response.WriteError(w, err)
 		return
 	}
 
-	scope := getScope(r)
+	userID, ok := authcontext.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
+		return
+	}
+
+	scope := getScope(userID)
 	task, err := h.service.Update(
 		r.Context(),
 		id,
@@ -33,7 +38,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		writeError(w, err)
+		response.WriteError(w, err)
 		return
 	}
 

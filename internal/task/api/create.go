@@ -1,28 +1,30 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
+	authcontext "todoshnik/internal/auth/context"
 )
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var requestDto CreateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
-		if err.Error() == "EOF" {
-			http.Error(w, "Пустой запрос", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+	var requestDto *CreateTaskRequest
+	requestDto, err := request.DecodeJSON[CreateTaskRequest](r)
+	if err != nil {
+		response.WriteError(w, err)
 		return
 	}
 
-	userID := getUserID(r)
+	userID, ok := authcontext.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
+		return
+	}
 
 	task, err := h.service.Add(r.Context(), requestDto.Title, userID)
 	if err != nil {
-		writeError(w, err)
+		response.WriteError(w, err)
 		return
 	}
 	fmt.Printf("UserID: %d | Создана задача: %v\n", userID, task.ID)

@@ -11,23 +11,23 @@ import (
 	taskapi "todoshnik/internal/task/api"
 )
 
-type APIHandler struct {
+type Server struct {
 	taskHandler *taskapi.Handler
 	authHandler *authapi.Handler
 	logger      *log.Logger
 }
 
-func NewAPIHandler(container *app.App) *APIHandler {
-	return &APIHandler{
+func NewAPIHandler(container *app.App) *Server {
+	return &Server{
 		taskHandler: taskapi.NewHandler(container.TaskService),
 		authHandler: authapi.NewHandler(container.UserService, container.TokenService),
 		logger:      container.Logger,
 	}
 }
 
-func (api *APIHandler) Run() {
+func (s *Server) Run() {
 	fmt.Printf("Hello\n")
-	r := api.Router()
+	r := s.Router()
 
 	err := http.ListenAndServe(":"+os.Getenv("API_PORT"), r)
 	if err != nil {
@@ -35,6 +35,6 @@ func (api *APIHandler) Run() {
 	}
 }
 
-func (api *APIHandler) pingHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong")
 }

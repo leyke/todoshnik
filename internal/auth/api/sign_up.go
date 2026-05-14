@@ -1,21 +1,18 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
+	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
 	apperrors "todoshnik/internal/errors"
 )
 
 func (h Handler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var requestDto UserSignUpRequestDto
-	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
-		if err.Error() == "EOF" {
-			http.Error(w, "Пустой запрос", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+	var requestDto *UserSignUpRequestDto
+	requestDto, err := request.DecodeJSON[UserSignUpRequestDto](r)
+	if err != nil {
+		response.WriteError(w, err)
 		return
 	}
 

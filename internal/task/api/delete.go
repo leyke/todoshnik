@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"todoshnik/internal/api/response"
+	authcontext "todoshnik/internal/auth/context"
 )
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -13,10 +14,16 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scope := getScope(r)
+	userID, ok := authcontext.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
+		return
+	}
+
+	scope := getScope(userID)
 	err = h.service.Delete(r.Context(), id, scope)
 	if err != nil {
-		writeError(w, err)
+		response.WriteError(w, err)
 		return
 	}
 

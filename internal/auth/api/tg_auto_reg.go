@@ -1,20 +1,17 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
+	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
 )
 
 func (h Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
-	var requestDto TgLoginRequestDto
-	if err := json.NewDecoder(r.Body).Decode(&requestDto); err != nil {
-		if err.Error() == "EOF" {
-			http.Error(w, "Пустой запрос", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+	var requestDto *TgLoginRequestDto
+	requestDto, err := request.DecodeJSON[TgLoginRequestDto](r)
+	if err != nil {
+		response.WriteError(w, err)
 		return
 	}
 
