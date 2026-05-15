@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func (h Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
+func (h *Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
 	response, err := h.api.Post(
 		ctx,
 		"/auth/tg/login",

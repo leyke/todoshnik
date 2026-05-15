@@ -7,7 +7,7 @@ import (
 	"todoshnik/internal/auth"
 )
 
-func (h Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 	var requestDto *TgLoginRequestDto
 	requestDto, err := request.DecodeJSON[TgLoginRequestDto](r)
 	if err != nil {

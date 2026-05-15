@@ -23,6 +23,6 @@ func main() {
 
 	botapi.Debug = os.Getenv("TELEGRAM_DEBUG") == "1"
 
-	bh := bot.NewBotHandler(container, botapi)
+	bh := bot.NewHandler(container, botapi)
 	bh.Run()
 }

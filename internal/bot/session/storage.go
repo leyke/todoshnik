@@ -10,26 +10,24 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type StateStorage struct {
+type Storage struct {
 	rdb *redis.Client
 }
 
-func NewStateStorage(rdb *redis.Client) *StateStorage {
-	return &StateStorage{
+func NewStorage(rdb *redis.Client) *Storage {
+	return &Storage{
 		rdb: rdb,
 	}
 }
 
-func (ss *StateStorage) Set(ctx context.Context, userID int64, command tg.Command, state tg.State) error {
+func (ss *Storage) Set(ctx context.Context, userID int64, command tg.Command, state tg.State) error {
 	key := getKey(userID)
-	fmt.Println(key)
 
 	err := ss.rdb.HSet(ctx, key,
 		"command", string(command),
 		"state", string(state),
 	).Err()
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	// запоминаем команду на час
@@ -41,20 +39,20 @@ func (ss *StateStorage) Set(ctx context.Context, userID int64, command tg.Comman
 	return nil
 }
 
-func (ss *StateStorage) Get(ctx context.Context, userID int64) (*Session, bool) {
+func (ss *Storage) Get(ctx context.Context, userID int64) (*Session, bool) {
 	key := getKey(userID)
-	fmt.Println(key)
 	data, err := ss.rdb.HGetAll(ctx, key).Result()
 	if err != nil {
+		fmt.Println("Ошибка получения данных из Redis:", err)
 		return nil, false
 	}
-	fmt.Println(data)
+
 	if len(data) == 0 {
 		return nil, false
 	}
 
 	us := &Session{
-		State: tg.StateIdale,
+		State: tg.StateIdle,
 	}
 	command, ok := data["command"]
 	if !ok {

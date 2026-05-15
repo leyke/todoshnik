@@ -7,7 +7,7 @@ import (
 	"todoshnik/internal/auth"
 )
 
-func (h Handler) SignIn(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 	var requestDto *UserSignInRequestDto
 	requestDto, err := request.DecodeJSON[UserSignInRequestDto](r)
 	if err != nil {

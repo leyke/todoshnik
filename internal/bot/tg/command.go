@@ -8,7 +8,7 @@ const (
 	CommandHelp       Command = "help"
 	CommandStatus     Command = "status"
 	CommandAdd        Command = "add"
-	СommandTaskDone   Command = "taskdone"
+	CommandTaskDone   Command = "taskdone"
 	CommandTaskDelete Command = "taskdelete"
-	СommandTaskList   Command = "tasklist"
+	CommandTaskList   Command = "tasklist"
 )

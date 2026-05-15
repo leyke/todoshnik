@@ -8,7 +8,7 @@ import (
 	apperrors "todoshnik/internal/errors"
 )
 
-func (h Handler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var requestDto *UserSignUpRequestDto
 	requestDto, err := request.DecodeJSON[UserSignUpRequestDto](r)
 	if err != nil {

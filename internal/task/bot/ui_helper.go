@@ -6,18 +6,18 @@ import (
 	"todoshnik/internal/task"
 )
 
-func getStatusButtonText(task task.Task) string {
+func GetStatusButtonText(task task.Task) string {
 	if task.Done {
 		return constants.EmojiInProgress + " В процессе"
 	}
 	return constants.EmojiIsDone + " Готово"
 }
 
-func getDeleteButtonText() string {
+func GetDeleteButtonText() string {
 	return constants.EmojiDelete + " Забыть"
 }
 
-func getTaskRowText(task task.Task) string {
+func GetTaskRowText(task task.Task) string {
 	emoji := constants.EmojiInProgress
 	if task.Done {
 		emoji = constants.EmojiIsDone

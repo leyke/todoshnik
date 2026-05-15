@@ -6,7 +6,7 @@ import (
 	"todoshnik/internal/task"
 )
 
-func (h Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
+func (h *Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
 	response, err := h.api.Post(ctx, "/tasks/"+taskID+"/done", nil)
 	if err != nil {
 		return "", err
@@ -20,5 +20,5 @@ func (h Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
 	}
 	defer response.Body.Close()
 
-	return getTaskRowText(task), nil
+	return GetTaskRowText(task), nil
 }

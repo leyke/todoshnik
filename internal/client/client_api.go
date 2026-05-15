@@ -10,7 +10,8 @@ import (
 	"net/url"
 	"os"
 	"time"
-	"todoshnik/internal/bot/tg"
+	authcontext "todoshnik/internal/auth/context"
+
 	apperrors "todoshnik/internal/errors"
 )
 
@@ -47,8 +48,7 @@ func (c *ApiClient) Get(ctx context.Context, endpoint string, query url.Values) 
 
 	// сервисный токен бота для внутренней проверки
 	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
-
-	if token, ok := ctx.Value(tg.TokenContextKey).(string); ok {
+	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
@@ -97,7 +97,7 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 
 	req.Header.Set("Content-Type", "application/json")
 
-	if token, ok := ctx.Value(tg.TokenContextKey).(string); ok {
+	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
@@ -111,8 +111,8 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 			return nil, apperrors.ErrUnAuth
 		}
 
-		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, apperrors.ErrUnAuth
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, apperrors.ErrNotFound
 		}
 
 		respBody, _ := io.ReadAll(resp.Body)
@@ -149,7 +149,7 @@ func (c *ApiClient) Put(ctx context.Context, endpoint string, payload any) (*htt
 	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
 	req.Header.Set("Content-Type", "application/json")
 
-	if token, ok := ctx.Value(tg.TokenContextKey).(string); ok {
+	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
@@ -192,7 +192,7 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 	// сервисный токен бота для внутренней проверки
 	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
 
-	if token, ok := ctx.Value(tg.TokenContextKey).(string); ok {
+	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 

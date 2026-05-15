@@ -9,12 +9,15 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("not found")
-	ErrNotValidate = errors.New("not validate")
-	ErrConflict    = errors.New("conflict")
-	ErrUnAuth      = errors.New("unauthorized")
-	ErrEmptyBody   = errors.New("empty request body")
-	ErrInvalidJSON = errors.New("invalid json")
+	ErrNotFound        = errors.New("not found")
+	ErrNotValidate     = errors.New("not validate")
+	ErrConflict        = errors.New("conflict")
+	ErrUnAuth          = errors.New("unauthorized")
+	ErrEmptyBody       = errors.New("empty request body")
+	ErrInvalidJSON     = errors.New("invalid json")
+	ErrServerException = errors.New("server exception")
+	ErrUnknownMethod   = errors.New("unknown method")
+	ErrInvalidTaskID   = errors.New("invalid task id")
 )
 
 type ValidationError struct {
@@ -36,7 +39,6 @@ func (e ValidationError) Error() string {
 		errs = append(errs, fmt.Sprintf("%s: %s", field, message))
 	}
 	return "Ошибка валидации: " + strings.Join(errs, "; ")
-
 }
 
 func NewValidationErrorFromValidator(err error) ValidationError {

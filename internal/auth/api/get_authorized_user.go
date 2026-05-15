@@ -5,7 +5,7 @@ import (
 	"todoshnik/internal/user"
 )
 
-func (h Handler) GetAuthorizedUser(ctx context.Context, rawToken string) (*user.User, error) {
+func (h *Handler) GetAuthorizedUser(ctx context.Context, rawToken string) (*user.User, error) {
 	token, err := h.tokenService.Get(ctx, rawToken)
 	if err != nil {
 		return nil, err

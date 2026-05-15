@@ -2,12 +2,11 @@ package cli
 
 import (
 	"context"
-	"os"
 	"todoshnik/internal/identity"
 )
 
 func (h *Handler) delete(ctx context.Context, args []string) {
-	taskId, err := getIntFromArgs(os.Args, 2)
+	taskId, err := getIntFromArgs(args, 2)
 	if err != nil {
 		printErr(err, "Ошибка удаления задачи")
 		return

@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	apperrors "todoshnik/internal/errors"
 )
 
-func (h Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
+func (h *Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
 	response, err := h.api.Post(
 		ctx,
 		"/auth/tg/auto-reg",
@@ -21,7 +23,7 @@ func (h Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (stri
 
 	err = json.NewDecoder(response.Body).Decode(&responseInfo)
 	if err != nil {
-		return "", err
+		return "", apperrors.ErrInvalidJSON
 	}
 
 	if responseInfo.AccessToken != "" {

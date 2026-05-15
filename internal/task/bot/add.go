@@ -6,7 +6,7 @@ import (
 	"todoshnik/internal/task"
 )
 
-func (h Handler) Add(ctx context.Context, taskTitle string) (*task.Task, error) {
+func (h *Handler) Add(ctx context.Context, taskTitle string) (*task.Task, error) {
 	response, err := h.api.Post(ctx, "/tasks", CreateTaskRequest{
 		Title: taskTitle,
 	})
