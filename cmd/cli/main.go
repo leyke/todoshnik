@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"todoshnik/internal/app"
 	"todoshnik/internal/cli"
 )
@@ -11,6 +12,6 @@ func main() {
 	container := app.InitApp(logFileName)
 	defer container.LogFile.Close()
 
-	cli := cli.NewCLIHandler(container.TaskService, container.TokenService)
-	cli.Run()
+	cli := cli.NewHandler(container.TaskService, container.TokenService)
+	cli.Run(os.Args)
 }

@@ -6,28 +6,28 @@ import (
 	"net/http"
 	"os"
 
-	"todoshnik/internal/api/auth"
-	"todoshnik/internal/api/task"
 	"todoshnik/internal/app"
+	authapi "todoshnik/internal/auth/api"
+	taskapi "todoshnik/internal/task/api"
 )
 
-type APIHandler struct {
-	taskHandler *task.Handler
-	authHandler *auth.AuthHandler
+type Server struct {
+	taskHandler *taskapi.Handler
+	authHandler *authapi.Handler
 	logger      *log.Logger
 }
 
-func NewAPIHandler(container *app.App) *APIHandler {
-	return &APIHandler{
-		taskHandler: task.NewHandler(container.TaskService),
-		authHandler: auth.NewAuthHandler(container.UserService, container.TokenService),
+func NewAPIHandler(container *app.App) *Server {
+	return &Server{
+		taskHandler: taskapi.NewHandler(container.TaskService),
+		authHandler: authapi.NewHandler(container.UserService, container.TokenService),
 		logger:      container.Logger,
 	}
 }
 
-func (api *APIHandler) Run() {
+func (s *Server) Run() {
 	fmt.Printf("Hello\n")
-	r := api.Router()
+	r := s.Router()
 
 	err := http.ListenAndServe(":"+os.Getenv("API_PORT"), r)
 	if err != nil {
@@ -35,6 +35,6 @@ func (api *APIHandler) Run() {
 	}
 }
 
-func (api *APIHandler) pingHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong")
 }

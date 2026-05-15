@@ -3,7 +3,7 @@ package tg
 type State string
 
 const (
-	StateIdale    State = "idle"
+	StateIdle     State = "idle"
 	StateWait     State = "wait"
-	StateComplete State = "complite"
+	StateComplete State = "complete"
 )

@@ -8,13 +8,14 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func (api *APIHandler) Router() http.Handler {
+func (api *Server) Router() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.Logging(api.logger))
 	r.Use(chimiddleware.Recoverer)
 
 	// Auth
 	r.Route("/auth", func(r chi.Router) {
+		r.Use(middleware.Logging(api.logger))
+
 		r.Post("/sign-in", api.authHandler.SignIn)
 		r.Post("/sign-up", api.authHandler.SignUp)
 
@@ -28,6 +29,7 @@ func (api *APIHandler) Router() http.Handler {
 
 	// Tasks
 	r.Route("/tasks", func(r chi.Router) {
+		r.Use(middleware.Logging(api.logger))
 		r.Use(middleware.Auth(api.authHandler))
 
 		r.Get("/", api.taskHandler.List)

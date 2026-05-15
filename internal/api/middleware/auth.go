@@ -1,16 +1,15 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
-	ah "todoshnik/internal/api/auth"
-	"todoshnik/internal/api/contextkeys"
+	authapi "todoshnik/internal/auth/api"
+	authcontext "todoshnik/internal/auth/context"
 )
 
-func Auth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
+func Auth(ah *authapi.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString, ok := extractTokenFromHeader(r)
@@ -19,15 +18,14 @@ func Auth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
 				return
 			}
 
-			user, err := ah.ValidateToken(r.Context(), tokenString)
+			user, err := ah.GetAuthorizedUser(r.Context(), tokenString)
 			if err != nil {
 				fmt.Printf("Ошибка валидации токена: %v\n", err)
 				http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, user.ID)
-			ctx = context.WithValue(ctx, contextkeys.UserKey, user)
+			ctx := authcontext.SetUser(r.Context(), user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -53,7 +51,7 @@ func extractTokenFromHeader(r *http.Request) (string, bool) {
 	return token, true
 }
 
-func BotAuth(ah *ah.AuthHandler) func(http.Handler) http.Handler {
+func BotAuth(ah *authapi.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("X-Bot-Service-Token")

@@ -14,7 +14,7 @@ func NewKeyboard(btns []InlineKeyboardBtn) tgbotapi.InlineKeyboardMarkup {
 		row = append(row, tgbotapi.NewInlineKeyboardButtonData(item.Text, item.Callback))
 	}
 
-	// обертка в строки, пока не требуется больше одной
+	// обертка в строки, пока не требуется больше одной стркои с кнопками
 	rows := tgbotapi.NewInlineKeyboardRow(row...)
 
 	return tgbotapi.NewInlineKeyboardMarkup(rows)
