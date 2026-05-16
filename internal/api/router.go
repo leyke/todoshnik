@@ -8,7 +8,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func (api *Server) Router() http.Handler {
+func (api *APIHandler) Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
 

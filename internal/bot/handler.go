@@ -3,6 +3,7 @@ package bot
 import (
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"todoshnik/internal/app"
@@ -25,6 +26,7 @@ type Handler struct {
 
 	bot   *tgbotapi.BotAPI
 	cache *redis.Client
+	wg    sync.WaitGroup
 
 	logger *log.Logger
 }
@@ -42,7 +44,7 @@ func NewHandler(container *app.App, bot *tgbotapi.BotAPI) *Handler {
 	}
 }
 
-func (h *Handler) Run() {
+func (h *Handler) Run() error {
 	log.Printf("Authorized on account %s", h.bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
@@ -51,6 +53,24 @@ func (h *Handler) Run() {
 	updates := h.bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		go h.dispatchUpdate(update)
+		h.wg.Add(1)
+
+		go func(update tgbotapi.Update) {
+			defer h.wg.Done()
+
+			h.dispatchUpdate(update)
+		}(update)
 	}
+
+	return nil
+}
+
+func (h *Handler) Shutdown() {
+	h.logger.Println("Остановка ТГ...")
+
+	h.bot.StopReceivingUpdates()
+
+	h.wg.Wait()
+
+	h.logger.Println("Чтение тг остановлено")
 }
