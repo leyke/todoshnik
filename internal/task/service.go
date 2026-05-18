@@ -2,11 +2,14 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/identity"
 	"todoshnik/internal/validation"
+
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -88,6 +91,10 @@ func (s *Service) MarkDone(ctx context.Context, taskId int, scope identity.Acces
 
 func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScope) (*Task, error) {
 	task, err := s.repo.GetByID(ctx, taskId, scope)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, apperrors.ErrNotFound
+	}
+	
 	return task, err
 }
 

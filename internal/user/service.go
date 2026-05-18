@@ -2,12 +2,15 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"todoshnik/internal/auth"
 	apperrors "todoshnik/internal/errors"
 
 	"todoshnik/internal/validation"
+
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -113,6 +116,10 @@ func (s *Service) Get(ctx context.Context, userID int, login string) (*User, err
 	}
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.ErrNotFound
+		}
+
 		return nil, err
 	}
 
@@ -126,11 +133,13 @@ func (s *Service) Get(ctx context.Context, userID int, login string) (*User, err
 func (s *Service) GetByTgId(ctx context.Context, userTgID int64) (*User, error) {
 	user, err := s.repo.GetByTgId(ctx, userTgID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.ErrNotFound
+		}
+
 		return nil, err
 	}
-	if user == nil {
-		return nil, apperrors.ErrNotFound
-	}
+
 	return user, nil
 }
 
