@@ -2,6 +2,22 @@
 # Тудушник
 Приложение сохраняющее задачи в память и отмечающее их статус. Собираю как практику после изучения Golang
 
+## О себе
+[Структура](https://github.com/leyke/todoshnik/blob/main/docs/structure.md)
+
+Стэк:
+- Go
+- REST API
+- OpenAPI
+- Telegram Bot API
+- GORM
+- SQL migrations
+- Docker / Docker Compose
+- gRPC (in progress)
+- JSON/File storage
+- Context / Graceful shutdown
+- Middleware
+
 ## Доступные контейнеры
 
 ### Консольный
