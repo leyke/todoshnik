@@ -99,7 +99,7 @@ func (h *Handler) cmdHelp(
 	args string,
 ) tgbotapi.Chattable {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	msg.Text = "Я могу /add, /list, /status и /restart."
+	msg.Text = "Я могу /add, /tasklist, /status и /restart."
 
 	return &msg
 }

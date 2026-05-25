@@ -11,6 +11,7 @@ import (
 	"todoshnik/internal/bot/session"
 	"todoshnik/internal/client"
 	task "todoshnik/internal/task/bot"
+	taskgrpc "todoshnik/internal/task/grpc"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/redis/go-redis/v9"
@@ -31,10 +32,10 @@ type Handler struct {
 	logger *log.Logger
 }
 
-func NewHandler(container *app.App, bot *tgbotapi.BotAPI) *Handler {
+func NewHandler(container *app.App, bot *tgbotapi.BotAPI, taskClient *taskgrpc.Client) *Handler {
 	apiClient := client.NewApiClient(os.Getenv("API_URL"))
 	return &Handler{
-		taskHandler:    task.NewHandler(apiClient, container.Logger),
+		taskHandler:    task.NewHandler(apiClient, taskClient, container.Logger),
 		authHandler:    authbot.NewHandler(apiClient),
 		sessionStorage: session.NewStorage(container.Cache),
 		cache:          container.Cache,

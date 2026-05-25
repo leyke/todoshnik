@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "todoshnik/internal/grpc/pb";
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (TaskResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+}
+
+message CreateTaskRequest {
+  string title = 1;
+}
+
+message TaskResponse {
+  int64 id = 1;
+  string title = 2;
+  bool done = 3;
+}
+
+message ListTasksRequest {
+  string status = 1;
+}
+
+message ListTasksResponse {
+  repeated TaskResponse tasks = 1;
+}
