@@ -26,6 +26,7 @@ func (h *Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+	// TODO что произойдет если мы выполним AddFromTg и сфейлимся на tokenService.Add?
 
 	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
 		UserID:      user.ID,

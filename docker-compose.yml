@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: docker/api.Dockerfile
     volumes:
+      // не понял зачем монтировать диск, для логов? Логи в stdout
+      // !!! манифест 12 факторного приложения https://12factor.net/ru/
       - ./tmp:/app/tmp:rw
     ports:
       - ${API_PORT}:8080
@@ -56,12 +58,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    // где-то должен быть или отдельный контейнер с миграциями или монтироваться директория с миграциями?
 
   redis:
     image: redis:7
     container_name: redis
     ports:
       - "6379:6379"
+    // везде прокидывал порт, а а тут- нет
 
 volumes:
   pgdata:

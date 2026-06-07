@@ -11,6 +11,7 @@ func (h *Handler) GetAuthorizedUser(ctx context.Context, rawToken string) (*user
 		return nil, err
 	}
 
+	// линтер любезно подсказывает что имя переменной конфликтует и перетирает название импортируемого пакета
 	user, err := h.userService.Get(ctx, token.UserID, "")
 	if err != nil {
 		return nil, err

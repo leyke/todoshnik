@@ -24,7 +24,9 @@ type Handler struct {
 
 	sessionStorage *session.Storage
 
-	bot   *tgbotapi.BotAPI
+	bot *tgbotapi.BotAPI
+	// очень смущает что тут на сервисном слое редис клиент; Хендлер не должен работать напрямую с инфраструктурныи
+	// зависимостями
 	cache *redis.Client
 	wg    sync.WaitGroup
 
@@ -61,6 +63,11 @@ func (h *Handler) Run() error {
 			h.dispatchUpdate(update)
 		}(update)
 	}
+
+	// 1. не хватает wait group возможна или утечка или частичный резултат
+	//    вернее группа есть, но без wg.Wait() это бессмыслено, разберись как это работает, поэксперементируй
+	// 2. если updates может быть большим– стоит ограничить параллелизм семафором
+	// 3. Изучи пакет errorGroup но постарайся сначала сам написать его с нуля
 
 	return nil
 }

@@ -20,6 +20,8 @@ func NewStorage(rdb *redis.Client) *Storage {
 	}
 }
 
+// Аналогичная претензия– надо вынести инфраструктурную обертку над редисом за интерфейс и на инфраструктурный слой
+
 func (ss *Storage) Set(ctx context.Context, userID int64, command tg.Command, state tg.State) error {
 	key := getKey(userID)
 
@@ -31,6 +33,7 @@ func (ss *Storage) Set(ctx context.Context, userID int64, command tg.Command, st
 		return err
 	}
 	// запоминаем команду на час
+	// интревал в настройки. 1 можно не писать, просто time.Hour
 	err = ss.rdb.Expire(ctx, key, 1*time.Hour).Err()
 	if err != nil {
 		return err
@@ -43,6 +46,7 @@ func (ss *Storage) Get(ctx context.Context, userID int64) (*Session, bool) {
 	key := getKey(userID)
 	data, err := ss.rdb.HGetAll(ctx, key).Result()
 	if err != nil {
+		// у тебя же был где-то логер
 		fmt.Println("Ошибка получения данных из Redis:", err)
 		return nil, false
 	}
@@ -68,5 +72,7 @@ func (ss *Storage) Get(ctx context.Context, userID int64) (*Session, bool) {
 }
 
 func getKey(userID int64) string {
+	// 1. если ключ будет "user:tg-command-state:%id" то будет на 1 конкатинацию меньше
+	// 2. можно использовать fmt было бы читабельнее и возможно производительнее (надо замерять)
 	return "user:" + strconv.FormatInt(userID, 10) + ":tg-command-state"
 }
