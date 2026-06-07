@@ -7,6 +7,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// мне не нравится что репозиторий лежит в том же пакете что и токен. Токен выглядит как доменный сервис, а репозиторий
+// это инфраструктурный слой
+
 type DBRepository struct {
 	db *gorm.DB
 }
@@ -17,6 +20,7 @@ func NewDbRepository(db *gorm.DB) *DBRepository {
 	}
 }
 
+// ты принимаешь один userID и может вернуться коллекция? У пользователя может быть много токенов?
 func (repo *DBRepository) GetAllByUserID(ctx context.Context, userID int) ([]*Token, error) {
 	var result []*Token
 	result = make([]*Token, 0)

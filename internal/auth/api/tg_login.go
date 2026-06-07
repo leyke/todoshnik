@@ -26,6 +26,7 @@ func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+	// TODO может ли пользователь удалиться после получения userService.GetByTgId и перед tokenService.Add и что будет?
 
 	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
 		UserID:      user.ID,

@@ -56,6 +56,7 @@ func (h *Handler) messageTaskAdd(
 	update tgbotapi.Update,
 	text string,
 ) tgbotapi.Chattable {
+	// почему-то text не используется возможно его надо тут передать
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	tgUser := update.Message.From
 
@@ -67,5 +68,7 @@ func (h *Handler) messageTaskAdd(
 
 	msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
 	h.sessionStorage.FinishCommand(ctx, tgUser, tg.CommandAdd)
+
+	// скорее всего NewMessage это уже ссылка (не смотрел пакет), точно ли тут надо разыменовывать?
 	return &msg
 }

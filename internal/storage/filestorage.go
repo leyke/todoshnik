@@ -9,6 +9,7 @@ type FileStorage[T any] struct {
 	filename string
 }
 
+// судя по всему этот пакет/сторедж не используется?
 func NewFileStorage[T any](filename string) FileStorage[T] {
 	return FileStorage[T]{
 		filename: filename,

@@ -31,9 +31,15 @@ func (s *Service) Add(ctx context.Context, user *user.User, device auth.DeviceTy
 		return "", tokenError
 	}
 
+	// 1. SALT и TOKEN_TTL_DAYS должны быть настройками компонента
+	// 2. Разве соль не должна быть уникальной для пользователя? В целом не силен
 	hash := HashToken(token, os.Getenv("SALT"))
 
+	// тут лучше использовать тип Duration и местод time.ParseDuration()
 	tokenTtl, tokenError := strconv.Atoi(os.Getenv("TOKEN_TTL_DAYS"))
+	// дефолты тоже нужно определять не в бизнес логике, а на этапе инициализации конфига, эта логика тут не нужна
+	// да и с точки зрения производительности каждый раз читать читать переменные окружения, делать парсинг это ненужный
+	// оверхед
 	if tokenError != nil {
 		tokenTtl = DefaultTokenTtl
 	}
@@ -76,6 +82,7 @@ func (s *Service) ClearExpiredTokens(ctx context.Context) int {
 	counter := 0
 	for _, token := range tokens {
 		err := s.repo.Delete(ctx, token)
+		// потеря ошибки, можно вернуть массив ошибок или сделать join
 		if err != nil {
 			counter++
 		}

@@ -18,6 +18,9 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
 	if err != nil {
+		// лучше избегать прямых проверок и всегда проверять error.Is, прямая проверка тригерит взгляд и наводит на
+		// мысли что в этом есть какая-то особая причина почему ошибка не может быть заврапана. Надо быть готовым
+		// что ошибку могут заврапать и это не должно сломать код
 		if err == apperrors.ErrConflict {
 			http.Error(w, "Пользователь с таким логином уже существует", http.StatusConflict)
 			return
