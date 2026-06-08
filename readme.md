@@ -34,3 +34,8 @@
 
 ### Docker
 Классика через `docker compose up --build`
+
+### Миграции
+Требуется `go install github.com/pressly/goose/v3/cmd/goose@latest`
+Накат `make migrate-up`
+ 
