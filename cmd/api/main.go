@@ -6,11 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
 	"todoshnik/internal/api"
 	"todoshnik/internal/app"
+	"todoshnik/internal/config"
 )
-
-var logFileName string = "/api.log"
 
 func main() {
 	ctx, stop := signal.NotifyContext(
@@ -20,7 +20,15 @@ func main() {
 	)
 	defer stop()
 
-	container := app.InitApp(logFileName)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
+
+	container, err := app.InitApp(cfg)
+	if err != nil {
+		log.Fatalf("init app: %v", err)
+	}
 
 	apiHandler := api.NewAPIHandler(container)
 
@@ -45,10 +53,6 @@ func main() {
 	}
 
 	if err := container.Cache.Close(); err != nil {
-		log.Println(err)
-	}
-
-	if err := container.LogFile.Close(); err != nil {
 		log.Println(err)
 	}
 }
