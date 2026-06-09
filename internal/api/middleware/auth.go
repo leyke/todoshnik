@@ -3,8 +3,8 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
+
 	authapi "todoshnik/internal/auth/api"
 	authcontext "todoshnik/internal/auth/context"
 )
@@ -69,7 +69,7 @@ func extractTokenFromHeader(r *http.Request) (string, bool) {
 }
 
 // аргумент не используется, это для совместимости с интерфейсом?
-func BotAuth(ah *authapi.Handler) func(http.Handler) http.Handler {
+func BotAuth(botServiceToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// аналогично– вынести заголовки в константы
@@ -87,7 +87,7 @@ func BotAuth(ah *authapi.Handler) func(http.Handler) http.Handler {
 				return
 			}
 
-			if token != os.Getenv("BOT_SERVICE_TOKEN") {
+			if token != botServiceToken {
 				fmt.Printf("Неверный сервисный токен бота")
 				http.Error(w, "Unauthorized: сервисный токен не верен", http.StatusUnauthorized)
 				return

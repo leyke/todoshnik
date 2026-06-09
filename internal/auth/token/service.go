@@ -2,26 +2,24 @@ package token
 
 import (
 	"context"
-	"os"
-	"strconv"
+	"errors"
 	"time"
 
 	"todoshnik/internal/auth"
-	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/user"
-)
 
-const (
-	DefaultTokenTtl int = 14 // количество дней жизни токена
+	apperrors "todoshnik/internal/errors"
 )
 
 type Service struct {
 	repo Repository
+	cfg  Config
 }
 
-func NewService(repo Repository) *Service {
+func NewService(repo Repository, cfg Config) *Service {
 	return &Service{
 		repo: repo,
+		cfg:  cfg,
 	}
 }
 
@@ -31,19 +29,8 @@ func (s *Service) Add(ctx context.Context, user *user.User, device auth.DeviceTy
 		return "", tokenError
 	}
 
-	// 1. SALT и TOKEN_TTL_DAYS должны быть настройками компонента
-	// 2. Разве соль не должна быть уникальной для пользователя? В целом не силен
-	hash := HashToken(token, os.Getenv("SALT"))
-
-	// тут лучше использовать тип Duration и местод time.ParseDuration()
-	tokenTtl, tokenError := strconv.Atoi(os.Getenv("TOKEN_TTL_DAYS"))
-	// дефолты тоже нужно определять не в бизнес логике, а на этапе инициализации конфига, эта логика тут не нужна
-	// да и с точки зрения производительности каждый раз читать читать переменные окружения, делать парсинг это ненужный
-	// оверхед
-	if tokenError != nil {
-		tokenTtl = DefaultTokenTtl
-	}
-	localTime := time.Now().AddDate(0, 0, tokenTtl).Unix()
+	hash := HashToken(token, s.cfg.Secret)
+	localTime := time.Now().Add(s.cfg.Ttl).Unix()
 
 	newToken := &Token{
 		UserID:    user.ID,
@@ -60,7 +47,7 @@ func (s *Service) Add(ctx context.Context, user *user.User, device auth.DeviceTy
 }
 
 func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
-	hash := HashToken(rawToken, os.Getenv("SALT"))
+	hash := HashToken(rawToken, s.cfg.Secret)
 
 	token, err := s.repo.GetByHash(ctx, hash)
 	if err != nil {
@@ -74,19 +61,20 @@ func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
 	return token, nil
 }
 
-func (s *Service) ClearExpiredTokens(ctx context.Context) int {
+func (s *Service) ClearExpiredTokens(ctx context.Context) (int, error) {
 	tokens, err := s.repo.GetExpiredTokens(ctx)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	counter := 0
+	errs := make([]error, 0, len(tokens))
 	for _, token := range tokens {
 		err := s.repo.Delete(ctx, token)
-		// потеря ошибки, можно вернуть массив ошибок или сделать join
 		if err != nil {
 			counter++
+			errs = append(errs, err)
 		}
 	}
 
-	return counter
+	return counter, errors.Join(errs...)
 }

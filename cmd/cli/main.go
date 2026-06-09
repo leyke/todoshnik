@@ -20,6 +20,10 @@ func main() {
 		log.Fatalf("init app: %v", err)
 	}
 
-	cli := cli.NewHandler(container.TaskService, container.TokenService)
+	cli := cli.NewHandler(container.Services)
 	cli.Run(os.Args)
+
+	if err := container.Close(); err != nil {
+		log.Println(err)
+	}
 }

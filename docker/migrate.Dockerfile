@@ -7,12 +7,12 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o bot ./cmd/tg_bot
+RUN go build -o migrate ./cmd/migrate
 
 FROM alpine:3.23
 
 WORKDIR /app
 
-COPY --from=builder /app/bot .
+COPY --from=builder /app/migrate .
 
-CMD ["./bot"]
+CMD ["./migrate"]

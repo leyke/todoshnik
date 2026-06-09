@@ -3,9 +3,12 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
+
+const defaultTokenTTL time.Duration = 7 * 24 * time.Hour
 
 func init() {
 	_ = godotenv.Load()
@@ -19,10 +22,11 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Host         string
-	Port         string
-	TokenSalt    string
-	TokenTtlDays string
+	Host        string
+	Port        string
+	TokenSecret string
+	TokenTtl    time.Duration
+	TmpDir      string
 }
 
 type PostgresConfig struct {
@@ -41,22 +45,30 @@ type RedisConfig struct {
 }
 
 type TelegramConfig struct {
-	Token string
-	Debug bool
+	Token        string
+	ServiceToken string
+	BotApiUrl    string
+	Debug        bool
 }
 
-func Load() (*Config, error) {
+func Load() (Config, error) {
 	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
 	if err != nil {
-		return nil, err
+		redisDB = 0
 	}
 
-	return &Config{
+	tokenTtl, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
+	if err != nil {
+		tokenTtl = defaultTokenTTL
+	}
+
+	return Config{
 		App: AppConfig{
-			Host:         os.Getenv("APP_HOST"),
-			Port:         os.Getenv("APP_PORT"),
-			TokenSalt:    os.Getenv("SALT"),
-			TokenTtlDays: os.Getenv("TOKEN_TTL_DAYS"),
+			Host:        os.Getenv("API_HOST"),
+			Port:        os.Getenv("API_PORT"),
+			TokenSecret: os.Getenv("SECRET"),
+			TokenTtl:    tokenTtl,
+			TmpDir:      os.Getenv("TMP_DIR"),
 		},
 		Postgres: PostgresConfig{
 			Host:     os.Getenv("DB_HOST"),
@@ -72,8 +84,10 @@ func Load() (*Config, error) {
 			DB:       redisDB,
 		},
 		Telegram: TelegramConfig{
-			Token: os.Getenv("TELEGRAM_TOKEN"),
-			Debug: os.Getenv("TELEGRAM_DEBUG") == "1",
+			Token:        os.Getenv("TELEGRAM_TOKEN"),
+			ServiceToken: os.Getenv("BOT_SERVICE_TOKEN"),
+			BotApiUrl:    os.Getenv("BOT_API_URL"),
+			Debug:        os.Getenv("TELEGRAM_DEBUG") == "1",
 		},
 	}, nil
 }

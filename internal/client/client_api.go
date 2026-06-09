@@ -8,21 +8,22 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
-	authcontext "todoshnik/internal/auth/context"
 
+	authcontext "todoshnik/internal/auth/context"
 	apperrors "todoshnik/internal/errors"
 )
 
 type ApiClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL      string
+	serviceToken string
+	client       *http.Client
 }
 
-func NewApiClient(baseURL string) *ApiClient {
+func NewApiClient(baseURL string, serviceToken string) *ApiClient {
 	return &ApiClient{
-		baseURL: baseURL,
+		baseURL:      baseURL,
+		serviceToken: serviceToken,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -47,7 +48,7 @@ func (c *ApiClient) Get(ctx context.Context, endpoint string, query url.Values) 
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
+	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
 	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -93,7 +94,7 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
+	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -146,7 +147,7 @@ func (c *ApiClient) Put(ctx context.Context, endpoint string, payload any) (*htt
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
+	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	if token, ok := authcontext.GetToken(ctx); ok {
@@ -190,7 +191,7 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", os.Getenv("BOT_SERVICE_TOKEN"))
+	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
 
 	if token, ok := authcontext.GetToken(ctx); ok {
 		req.Header.Set("Authorization", "Bearer "+token)

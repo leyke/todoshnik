@@ -2,8 +2,10 @@ package bot
 
 import (
 	"context"
+
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
+
 	apperrors "todoshnik/internal/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

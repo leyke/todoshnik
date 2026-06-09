@@ -2,9 +2,11 @@ package api
 
 import (
 	"net/http"
+
 	"todoshnik/internal/api/middleware"
 
 	"github.com/go-chi/chi/v5"
+
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
@@ -20,7 +22,7 @@ func (api *APIHandler) Router() http.Handler {
 		r.Post("/sign-up", api.authHandler.SignUp)
 
 		r.Route("/tg", func(r chi.Router) {
-			r.Use(middleware.BotAuth(api.authHandler))
+			r.Use(middleware.BotAuth(api.config.BotServiceToken))
 
 			r.Post("/login", api.authHandler.TgLogin)
 			r.Post("/auto-reg", api.authHandler.TgAutoReg)

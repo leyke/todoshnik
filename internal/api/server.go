@@ -1,33 +1,23 @@
 package api
 
-import (
-	"context"
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"todoshnik/internal/app"
-	authapi "todoshnik/internal/auth/api"
-)
-
 // приложу сюда, хотя к пакету не относится
 // посмотри, если не видел пример стандартной структуры проекта https://github.com/golang-standards/project-layout
 // может быть наведет на какие-то мысли. В целом мы у себя тоже не придерживаемся строго этого стандарта, но мы следуем
 // гексогональной артхитектуре (по крайней мере насколько мы этим владеем и насколько получается)
 // В целом есть претензии к структуре.
 // Вроде бы есть прекрасные мысли: папки app и infrastructure, но тут же есть cli и client, которые либо сервисы либо
-// инфраструктурные (еще не смотрел). Есть какие-то папки намекающие на доменную логику: task, user. Есть богомерзкая
-// папка constants, я видел проекты где подобным образом делали, или например метрики/интерфейсы для моков складывали
-// в отдельный пакет– это каждый раз плохо заканчивалось и с этим трудно работать.
-// - константы ДОЛЖНЫ быть определены в том пакете где они используются, тогда ты а) при удалении пакета
-//   или когда реализацию перепишут не забудешь удалить константы б) у тебя не будут 2 разных пакета ссылаться на одну
-//   константу.
-// - сейчас я вижу что все константы относятся к пакету ui-helper, почему не перенести туда? Кажется что emoji это не
-//   то, что можно где-то переиспользовать еще.
-// - эмоджи это что-то что относится к слою представления, с этим надо быть особенно осторожным чтобы это нику не
-//   протекло, поэтому лучше перенести в пакет ui-helper и сделать неэкспортуемыми (с маленькой буквы)
+// инфраструктурные (еще не смотрел). Есть какие-то папки намекающие на доменную логику: task, user.
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+
+	"todoshnik/internal/app"
+	"todoshnik/internal/config"
+
+	authapi "todoshnik/internal/auth/api"
 	taskapi "todoshnik/internal/task/api"
 )
 
@@ -36,27 +26,22 @@ type APIHandler struct {
 	authHandler *authapi.Handler
 	logger      *log.Logger
 	server      *http.Server
+
+	config Config
 }
 
-func NewAPIHandler(container *app.App) *APIHandler {
+func NewAPIHandler(services *app.Services, logger *log.Logger, config Config) *APIHandler {
 	return &APIHandler{
-		// прекрасно что ты прокидываешь в NewAPIHandler taskHandler, authHandler это прекрасный пример использования
-		// DI. Но ты прокидываешь целый application, это слишком жирно и убивает всю идею. Надо прокидывать минимальный
-		// уровень зависимостей, например явно 2 хендлера (если они не сгруппированы в какую-то отдельную коллекцию).
-		// Если хочется можно на уровне пакета определить api.Handlers структуру и инициализировать ее при вызове
-		// _, _ = NewAPIHandler(ctx, logger, handlers)
-		// сейчас никто не мешает мне тут начать слать sql запросы, использовать redis и т.п. могу даже шатдаун
-		// приложения сделать. Это тяжело и опасно рефакторить
-		taskHandler: taskapi.NewHandler(container.TaskService),
-		authHandler: authapi.NewHandler(container.UserService, container.TokenService),
-		logger:      container.Logger,
+		taskHandler: taskapi.NewHandler(services.TaskService),
+		authHandler: authapi.NewHandler(services.UserService, services.TokenService),
+		logger:      logger,
+		config:      config,
 	}
 }
 
-func (h *APIHandler) Run() error {
+func (h *APIHandler) Run(cfg config.AppConfig) error {
 	h.server = &http.Server{
-		// протекает env и где хост
-		Addr:    ":" + os.Getenv("API_PORT"),
+		Addr:    ":" + cfg.Port, // в докере с хостом не работает
 		Handler: h.Router(),
 	}
 

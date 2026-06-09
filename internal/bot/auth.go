@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"strconv"
+
 	authbot "todoshnik/internal/auth/bot"
 	authcontext "todoshnik/internal/auth/context"
 

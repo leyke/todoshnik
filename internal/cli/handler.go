@@ -3,6 +3,8 @@ package cli
 import (
 	"context"
 	"fmt"
+
+	"todoshnik/internal/app"
 	"todoshnik/internal/auth/token"
 	"todoshnik/internal/task"
 )
@@ -12,10 +14,10 @@ type Handler struct {
 	tokenService *token.Service
 }
 
-func NewHandler(tsks *task.Service, tkns *token.Service) *Handler {
+func NewHandler(services *app.Services) *Handler {
 	return &Handler{
-		taskService:  tsks,
-		tokenService: tkns,
+		taskService:  services.TaskService,
+		tokenService: services.TokenService,
 	}
 }
 

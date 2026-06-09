@@ -3,8 +3,10 @@ package bot
 import (
 	"context"
 	"fmt"
+
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
+
 	apperrors "todoshnik/internal/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -56,11 +58,10 @@ func (h *Handler) messageTaskAdd(
 	update tgbotapi.Update,
 	text string,
 ) tgbotapi.Chattable {
-	// почему-то text не используется возможно его надо тут передать
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	tgUser := update.Message.From
 
-	task, err := h.taskHandler.Add(ctx, update.Message.Text)
+	task, err := h.taskHandler.Add(ctx, text)
 	if err != nil {
 		h.logger.Println(err)
 		return response.NewError(update.Message.Chat.ID, err)
@@ -70,5 +71,5 @@ func (h *Handler) messageTaskAdd(
 	h.sessionStorage.FinishCommand(ctx, tgUser, tg.CommandAdd)
 
 	// скорее всего NewMessage это уже ссылка (не смотрел пакет), точно ли тут надо разыменовывать?
-	return &msg
+	return msg
 }

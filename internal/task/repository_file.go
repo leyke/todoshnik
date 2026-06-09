@@ -4,9 +4,11 @@ import (
 	"context"
 	"sort"
 	"sync"
-	apperror "todoshnik/internal/errors"
+
 	"todoshnik/internal/identity"
 	"todoshnik/internal/storage"
+
+	apperror "todoshnik/internal/errors"
 )
 
 type FileRepository struct {

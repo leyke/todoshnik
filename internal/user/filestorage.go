@@ -1,11 +1,11 @@
 package user
 
 import (
-	"os"
+	"todoshnik/internal/config"
 	"todoshnik/internal/storage"
 )
 
-func NewFileStorage() storage.FileStorage[User] {
-	storagePath := os.Getenv("TMP_DIR") + "/users.json"
+func NewFileStorage(c *config.Config) storage.FileStorage[User] {
+	storagePath := c.App.TmpDir + "/users.json"
 	return storage.NewFileStorage[User](storagePath)
 }

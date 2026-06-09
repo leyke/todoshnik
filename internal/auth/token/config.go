@@ -1,7 +1,9 @@
-package auth
+package token
+
+import "time"
 
 // Конфиг есть, но почему-то ты не возмользовался?
 type Config struct {
-	Salt string
-	Ttl  int
+	Secret string
+	Ttl    time.Duration
 }

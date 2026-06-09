@@ -30,10 +30,10 @@ func main() {
 		log.Fatalf("init app: %v", err)
 	}
 
-	apiHandler := api.NewAPIHandler(container)
+	apiHandler := api.NewAPIHandler(container.Services, container.Logger, api.Config{BotServiceToken: cfg.Telegram.ServiceToken})
 
 	go func() {
-		if err := apiHandler.Run(); err != nil {
+		if err := apiHandler.Run(cfg.App); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -52,7 +52,7 @@ func main() {
 		log.Println(err)
 	}
 
-	if err := container.Cache.Close(); err != nil {
+	if err := container.Close(); err != nil {
 		log.Println(err)
 	}
 }

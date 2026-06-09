@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"todoshnik/internal/auth"
-	apperrors "todoshnik/internal/errors"
-
 	"todoshnik/internal/validation"
+
+	apperrors "todoshnik/internal/errors"
 
 	"gorm.io/gorm"
 )

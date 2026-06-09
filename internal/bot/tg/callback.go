@@ -2,6 +2,7 @@ package tg
 
 import (
 	"encoding/json"
+
 	apperrors "todoshnik/internal/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

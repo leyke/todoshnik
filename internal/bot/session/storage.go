@@ -3,8 +3,8 @@ package session
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
+
 	"todoshnik/internal/bot/tg"
 
 	"github.com/redis/go-redis/v9"
@@ -33,8 +33,7 @@ func (ss *Storage) Set(ctx context.Context, userID int64, command tg.Command, st
 		return err
 	}
 	// запоминаем команду на час
-	// интревал в настройки. 1 можно не писать, просто time.Hour
-	err = ss.rdb.Expire(ctx, key, 1*time.Hour).Err()
+	err = ss.rdb.Expire(ctx, key, time.Hour).Err()
 	if err != nil {
 		return err
 	}
@@ -46,8 +45,6 @@ func (ss *Storage) Get(ctx context.Context, userID int64) (*Session, bool) {
 	key := getKey(userID)
 	data, err := ss.rdb.HGetAll(ctx, key).Result()
 	if err != nil {
-		// у тебя же был где-то логер
-		fmt.Println("Ошибка получения данных из Redis:", err)
 		return nil, false
 	}
 
@@ -71,8 +68,7 @@ func (ss *Storage) Get(ctx context.Context, userID int64) (*Session, bool) {
 	return us, true
 }
 
+// формат ключа user:{userID}, чтобы можно было проще удалять по id юзера через регулярку rk.xf, если понадобится
 func getKey(userID int64) string {
-	// 1. если ключ будет "user:tg-command-state:%id" то будет на 1 конкатинацию меньше
-	// 2. можно использовать fmt было бы читабельнее и возможно производительнее (надо замерять)
-	return "user:" + strconv.FormatInt(userID, 10) + ":tg-command-state"
+	return fmt.Sprintf("user:%d:tg-command-state", userID)
 }

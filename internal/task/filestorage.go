@@ -1,11 +1,11 @@
 package task
 
 import (
-	"os"
+	"todoshnik/internal/config"
 	"todoshnik/internal/storage"
 )
 
-func NewFileStorage() storage.FileStorage[Task] {
-	storagePath := os.Getenv("TMP_DIR") + "/tasks.json"
+func NewFileStorage(c *config.Config) storage.FileStorage[Task] {
+	storagePath := c.App.TmpDir + "/tasks.json"
 	return storage.NewFileStorage[Task](storagePath)
 }

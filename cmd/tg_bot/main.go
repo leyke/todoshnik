@@ -37,7 +37,14 @@ func main() {
 	}
 	botapi.Debug = cfg.Telegram.Debug
 
-	bh := bot.NewHandler(container, botapi)
+	bh := bot.NewHandler(
+		container,
+		botapi,
+		bot.Config{
+			ApiURL:          cfg.Telegram.BotApiUrl,
+			BotServiceToken: cfg.Telegram.ServiceToken,
+		},
+	)
 
 	go func() {
 		if err := bh.Run(); err != nil {
@@ -51,5 +58,7 @@ func main() {
 
 	bh.Shutdown()
 
-	container.Cache.Close()
+	if err := container.Close(); err != nil {
+		log.Println(err)
+	}
 }

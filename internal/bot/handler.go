@@ -2,18 +2,19 @@ package bot
 
 import (
 	"log"
-	"os"
 	"sync"
 	"time"
 
 	"todoshnik/internal/app"
-	authbot "todoshnik/internal/auth/bot"
 	"todoshnik/internal/bot/session"
 	"todoshnik/internal/client"
+
+	authbot "todoshnik/internal/auth/bot"
 	task "todoshnik/internal/task/bot"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/redis/go-redis/v9"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const botTokenTtl time.Duration = 4 * time.Hour
@@ -33,8 +34,13 @@ type Handler struct {
 	logger *log.Logger
 }
 
-func NewHandler(container *app.App, bot *tgbotapi.BotAPI) *Handler {
-	apiClient := client.NewApiClient(os.Getenv("API_URL"))
+type Config struct {
+	ApiURL          string
+	BotServiceToken string
+}
+
+func NewHandler(container *app.App, bot *tgbotapi.BotAPI, cfg Config) *Handler {
+	apiClient := client.NewApiClient(cfg.ApiURL, cfg.BotServiceToken)
 	return &Handler{
 		taskHandler:    task.NewHandler(apiClient, container.Logger),
 		authHandler:    authbot.NewHandler(apiClient),

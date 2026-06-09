@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	apperrors "todoshnik/internal/errors"
 	"todoshnik/internal/identity"
 	"todoshnik/internal/validation"
+
+	apperrors "todoshnik/internal/errors"
 
 	"gorm.io/gorm"
 )
@@ -94,7 +95,7 @@ func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScop
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, apperrors.ErrNotFound
 	}
-	
+
 	return task, err
 }
 
