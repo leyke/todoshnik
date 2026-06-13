@@ -3,12 +3,9 @@ package task
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"todoshnik/internal/identity"
 	"todoshnik/internal/validation"
-
-	apperrors "todoshnik/internal/errors"
 
 	"gorm.io/gorm"
 )
@@ -93,7 +90,7 @@ func (s *Service) MarkDone(ctx context.Context, taskId int, scope identity.Acces
 func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScope) (*Task, error) {
 	task, err := s.repo.GetByID(ctx, taskId, scope)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, apperrors.ErrNotFound
+		return nil, ErrNotFound
 	}
 
 	return task, err
@@ -102,8 +99,7 @@ func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScop
 func validateTask(task *Task) error {
 	ve := validation.Validate(task)
 	if ve != nil {
-		fmt.Println(ve)
-		return apperrors.NewValidationErrorFromValidator(ve)
+		return validation.NewValidationErrorFromValidator(ve)
 	}
 	return nil
 }

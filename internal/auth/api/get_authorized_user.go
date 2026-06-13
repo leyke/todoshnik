@@ -12,7 +12,7 @@ func (h *Handler) GetAuthorizedUser(ctx context.Context, rawToken string) (*appu
 		return nil, err
 	}
 
-	user, err := h.userService.Get(ctx, token.UserID, "")
+	user, err := h.userService.GetById(ctx, token.UserID)
 	if err != nil {
 		return nil, err
 	}

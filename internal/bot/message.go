@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	boterrors "todoshnik/internal/bot/errors"
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
-
-	apperrors "todoshnik/internal/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -43,8 +42,8 @@ func (h *Handler) handleMessageUpdate(ctx context.Context, update tgbotapi.Updat
 
 	handler, ok := handlers[lastState.Command]
 	if !ok {
-		h.logger.Println(apperrors.ErrUnknownMethod)
-		return response.NewError(update.Message.Chat.ID, apperrors.ErrUnknownMethod)
+		h.logger.Println(boterrors.ErrUnknownMethod)
+		return response.NewError(update.Message.Chat.ID, boterrors.ErrUnknownMethod)
 	}
 
 	// попытка авторизоваться
@@ -70,6 +69,5 @@ func (h *Handler) messageTaskAdd(
 	msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
 	h.sessionStorage.FinishCommand(ctx, tgUser, tg.CommandAdd)
 
-	// скорее всего NewMessage это уже ссылка (не смотрел пакет), точно ли тут надо разыменовывать?
 	return msg
 }

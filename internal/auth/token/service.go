@@ -7,8 +7,6 @@ import (
 
 	"todoshnik/internal/auth"
 	"todoshnik/internal/user"
-
-	apperrors "todoshnik/internal/errors"
 )
 
 type Service struct {
@@ -50,12 +48,9 @@ func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
 	hash := HashToken(rawToken, s.cfg.Secret)
 
 	token, err := s.repo.GetByHash(ctx, hash)
+
 	if err != nil {
 		return nil, err
-	}
-
-	if token == nil {
-		return nil, apperrors.ErrNotFound
 	}
 
 	return token, nil

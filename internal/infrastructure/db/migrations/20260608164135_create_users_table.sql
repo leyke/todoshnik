@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     login VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    telegram_id BIGINT UNIQUE
+    telegram_id BIGINT
 );
 
 -- +goose Down

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	apperrors "todoshnik/internal/errors"
+	apierrors "todoshnik/internal/api/errors"
 )
 
 func (h *Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
@@ -23,7 +23,7 @@ func (h *Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (str
 
 	err = json.NewDecoder(response.Body).Decode(&responseInfo)
 	if err != nil {
-		return "", apperrors.ErrInvalidJSON
+		return "", apierrors.ErrInvalidJSON
 	}
 
 	if responseInfo.AccessToken != "" {

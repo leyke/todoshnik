@@ -7,5 +7,5 @@ type TgLoginRequestDto struct {
 
 type UserAuthInfoResponseDto struct {
 	UserID      int    `json:"user_id"`
-	AccessToken string `json:"access_token"`
+	AccessToken string `json:"access_token,omitempty"`
 }

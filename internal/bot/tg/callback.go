@@ -3,8 +3,6 @@ package tg
 import (
 	"encoding/json"
 
-	apperrors "todoshnik/internal/errors"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -23,7 +21,7 @@ func DecodeJSON(callback *tgbotapi.CallbackQuery) (*CallbackQuery, error) {
 
 	err := json.Unmarshal([]byte(callback.Data), &query)
 	if err != nil {
-		return nil, apperrors.ErrInvalidJSON
+		return nil, err
 	}
 	return &query, nil
 }

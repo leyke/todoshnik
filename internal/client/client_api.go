@@ -11,7 +11,12 @@ import (
 	"time"
 
 	authcontext "todoshnik/internal/auth/context"
-	apperrors "todoshnik/internal/errors"
+)
+
+var (
+	headerServiceToken string = "X-Bot-Service-Token"
+	headerAuth         string = "Authorization"
+	headerContentType  string = "Content-Type"
 )
 
 type ApiClient struct {
@@ -48,9 +53,9 @@ func (c *ApiClient) Get(ctx context.Context, endpoint string, query url.Values) 
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
+	req.Header.Set(headerServiceToken, c.serviceToken)
 	if token, ok := authcontext.GetToken(ctx); ok {
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set(headerAuth, "Bearer "+token)
 	}
 
 	resp, err := c.client.Do(req)
@@ -60,7 +65,7 @@ func (c *ApiClient) Get(ctx context.Context, endpoint string, query url.Values) 
 
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, apperrors.ErrUnAuth
+			return nil, ErrUnAuth
 		}
 
 		respBody, _ := io.ReadAll(resp.Body)
@@ -94,12 +99,11 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
-
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerServiceToken, c.serviceToken)
+	req.Header.Set(headerContentType, "application/json")
 
 	if token, ok := authcontext.GetToken(ctx); ok {
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set(headerAuth, "Bearer "+token)
 	}
 
 	resp, err := c.client.Do(req)
@@ -109,11 +113,11 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, apperrors.ErrUnAuth
+			return nil, ErrUnAuth
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return nil, apperrors.ErrNotFound
+			return nil, ErrNotFound
 		}
 
 		respBody, _ := io.ReadAll(resp.Body)
@@ -147,11 +151,11 @@ func (c *ApiClient) Put(ctx context.Context, endpoint string, payload any) (*htt
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(headerServiceToken, c.serviceToken)
+	req.Header.Set(headerContentType, "application/json")
 
 	if token, ok := authcontext.GetToken(ctx); ok {
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set(headerAuth, "Bearer "+token)
 	}
 
 	resp, err := c.client.Do(req)
@@ -161,7 +165,7 @@ func (c *ApiClient) Put(ctx context.Context, endpoint string, payload any) (*htt
 
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, apperrors.ErrUnAuth
+			return nil, ErrUnAuth
 		}
 
 		respBody, _ := io.ReadAll(resp.Body)
@@ -191,10 +195,9 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 	}
 
 	// сервисный токен бота для внутренней проверки
-	req.Header.Set("X-Bot-Service-Token", c.serviceToken)
-
+	req.Header.Set(headerServiceToken, c.serviceToken)
 	if token, ok := authcontext.GetToken(ctx); ok {
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set(headerAuth, "Bearer "+token)
 	}
 
 	resp, err := c.client.Do(req)
@@ -205,7 +208,7 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, apperrors.ErrUnAuth
+			return nil, ErrUnAuth
 		}
 
 		respBody, _ := io.ReadAll(resp.Body)

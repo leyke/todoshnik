@@ -3,26 +3,36 @@ package response
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
-	apperrors "todoshnik/internal/errors"
+	apierrors "todoshnik/internal/api/errors"
 )
 
-func WriteJSON(w http.ResponseWriter, status int, data any) {
+func WriteJSON(w http.ResponseWriter, status int, data any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	// опять нет проверки ошибок или подавления
-	json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		return fmt.Errorf("encode json response: %w", err)
+	}
+
+	return nil
 }
 
 func WriteError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, apperrors.ErrNotFound):
+	case errors.Is(err, apierrors.ErrNotFound):
 		WriteJSON(w, http.StatusNotFound, ErrorResponse{Error: err.Error()})
-	// я бы сказал что StatusBadRequest это клиентская ошибка и довольно неожиданно обвинять клиента в что что-то
-	// в приложении не так, в пакете error у тебя более богатый спектр ошибок
-	default:
+	case errors.Is(err, apierrors.ErrEmptyBody):
 		WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	case errors.Is(err, apierrors.ErrBadRequest):
+		WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	case errors.Is(err, apierrors.ErrUnauth):
+		WriteJSON(w, http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
+	case errors.Is(err, apierrors.ErrConflict):
+		WriteJSON(w, http.StatusConflict, ErrorResponse{Error: err.Error()})
+	default:
+		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
 }

@@ -29,7 +29,6 @@ func Auth(ah *authapi.Handler) func(http.Handler) http.Handler {
 				//    возвращать результат и ошибку
 				// 3. В целом функция которая возвращает замыкание внутри другого замыкания выглядит странновато, тем
 				//    более я не вижу особо какого-то захвата переменных и скоупа
-				fmt.Printf("Ошибка валидации токена: %v\n", err)
 				http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
 				return
 			}

@@ -3,8 +3,10 @@ package api
 import (
 	"fmt"
 	"net/http"
+
 	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
+
 	authcontext "todoshnik/internal/auth/context"
 )
 

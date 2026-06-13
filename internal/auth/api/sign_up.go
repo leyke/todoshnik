@@ -1,11 +1,17 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+
 	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
-	apperrors "todoshnik/internal/errors"
+	"todoshnik/internal/user"
+	"todoshnik/internal/validation"
+
+	apierrors "todoshnik/internal/api/errors"
 )
 
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -16,28 +22,28 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
+	newUser, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
+	if errors.Is(err, user.ErrConflict) {
+		response.WriteError(w, fmt.Errorf("%w: пользователь с таким логином уже существует", apierrors.ErrConflict))
+		return
+	}
+	if errors.Is(err, validation.ErrNotValidate) {
+		response.WriteError(w, fmt.Errorf("%w: данные пользователя недействительны: %w", apierrors.ErrBadRequest, err))
+		return
+	}
 	if err != nil {
-		// лучше избегать прямых проверок и всегда проверять error.Is, прямая проверка тригерит взгляд и наводит на
-		// мысли что в этом есть какая-то особая причина почему ошибка не может быть заврапана. Надо быть готовым
-		// что ошибку могут заврапать и это не должно сломать код
-		if err == apperrors.ErrConflict {
-			http.Error(w, "Пользователь с таким логином уже существует", http.StatusConflict)
-			return
-		}
-
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.WriteError(w, err)
 		return
 	}
 
-	accessToken, err := h.tokenService.Add(r.Context(), user, auth.DeviceTypeApi)
+	accessToken, err := h.tokenService.Add(r.Context(), newUser, auth.DeviceTypeApi)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.WriteError(w, err)
 		return
 	}
 
 	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
-		UserID:      user.ID,
+		UserID:      newUser.ID,
 		AccessToken: accessToken,
 	})
 }

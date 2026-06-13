@@ -7,8 +7,6 @@ import (
 
 	"todoshnik/internal/identity"
 	"todoshnik/internal/storage"
-
-	apperror "todoshnik/internal/errors"
 )
 
 type FileRepository struct {
@@ -92,7 +90,7 @@ func (repo *FileRepository) GetByID(ctx context.Context, id int, scope identity.
 
 	task, ok := repo.items[id]
 	if !ok || (!scope.IsAdmin && scope.UserID != task.UserID) {
-		return nil, apperror.ErrNotFound
+		return nil, ErrNotFound
 	}
 
 	copy := *task

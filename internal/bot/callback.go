@@ -5,8 +5,9 @@ import (
 
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
+	"todoshnik/internal/task"
 
-	apperrors "todoshnik/internal/errors"
+	boterrors "todoshnik/internal/bot/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -37,7 +38,7 @@ func (h *Handler) handleCallbackUpdate(ctx context.Context, update tgbotapi.Upda
 
 	handler, ok := handlers[callback.Command]
 	if !ok {
-		return response.NewError(update.Message.Chat.ID, apperrors.ErrUnknownMethod)
+		return response.NewError(update.Message.Chat.ID, boterrors.ErrUnknownMethod)
 	}
 
 	// попытка авторизоваться
@@ -56,7 +57,7 @@ func (h *Handler) callbackTaskDone(
 
 	taskId, ok := tg.GetTaskID(callback)
 	if !ok {
-		return response.NewError(update.Message.Chat.ID, apperrors.ErrInvalidTaskID)
+		return response.NewError(update.Message.Chat.ID, task.ErrInvalidTaskID)
 	}
 
 	taskRowText, err := h.taskHandler.DoneTask(ctx, taskId)
@@ -83,7 +84,7 @@ func (h *Handler) callbackTaskDelete(
 
 	taskId, ok := tg.GetTaskID(callback)
 	if !ok {
-		return response.NewError(update.Message.Chat.ID, apperrors.ErrInvalidTaskID)
+		return response.NewError(update.Message.Chat.ID, task.ErrInvalidTaskID)
 	}
 
 	err := h.taskHandler.DeleteTask(ctx, taskId)

@@ -2,8 +2,10 @@ package response
 
 import (
 	"errors"
+	"todoshnik/internal/client"
+	"todoshnik/internal/task"
 
-	apperrors "todoshnik/internal/errors"
+	boterrors "todoshnik/internal/bot/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -11,13 +13,13 @@ import (
 func NewError(chatID int64, err error) tgbotapi.Chattable {
 	var msg tgbotapi.Chattable
 	switch {
-	case errors.Is(err, apperrors.ErrNotFound):
+	case errors.Is(err, client.ErrNotFound):
 		msg = tgbotapi.NewMessage(chatID, err.Error())
-	case errors.Is(err, apperrors.ErrUnAuth):
+	case errors.Is(err, client.ErrUnAuth):
 		msg = tgbotapi.NewMessage(chatID, "Я тебя забыл, давай познакомимся еще раз /restart")
-	case errors.Is(err, apperrors.ErrUnknownMethod):
+	case errors.Is(err, boterrors.ErrUnknownMethod):
 		msg = tgbotapi.NewMessage(chatID, "Я хз что это такое, если бы я знал что это такое, я бы помог /help")
-	case errors.Is(err, apperrors.ErrInvalidTaskID):
+	case errors.Is(err, task.ErrInvalidTaskID):
 		msg = tgbotapi.NewMessage(chatID, "Неверный ID задачи")
 	default:
 		msg = tgbotapi.NewMessage(chatID, "Возникла непредвиденная ошибка")

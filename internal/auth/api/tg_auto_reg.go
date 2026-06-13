@@ -1,10 +1,16 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+
 	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
+	"todoshnik/internal/validation"
+
+	apierrors "todoshnik/internal/api/errors"
 )
 
 func (h *Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
@@ -16,14 +22,18 @@ func (h *Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.userService.AddFromTg(r.Context(), requestDto.Name, requestDto.TgUserID)
+	if errors.Is(err, validation.ErrNotValidate) {
+		response.WriteError(w, fmt.Errorf("%w: данные пользователя недействительны: %w", apierrors.ErrBadRequest, err))
+		return
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.WriteError(w, err)
 		return
 	}
 
 	accessToken, err := h.tokenService.Add(r.Context(), user, auth.DeviceTypeBot)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		response.WriteError(w, err)
 		return
 	}
 	// TODO что произойдет если мы выполним AddFromTg и сфейлимся на tokenService.Add?

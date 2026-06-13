@@ -7,7 +7,7 @@ import (
 	"todoshnik/internal/bot/response"
 	"todoshnik/internal/bot/tg"
 
-	apperrors "todoshnik/internal/errors"
+	boterrors "todoshnik/internal/bot/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -41,8 +41,8 @@ func (h *Handler) handleCommand(
 
 	handler, ok := handlers[command]
 	if !ok {
-		h.logger.Println(apperrors.ErrUnknownMethod)
-		return response.NewError(update.Message.Chat.ID, apperrors.ErrUnknownMethod)
+		h.logger.Println(boterrors.ErrUnknownMethod)
+		return response.NewError(update.Message.Chat.ID, boterrors.ErrUnknownMethod)
 	}
 
 	// авторизуем пользователя для всех команд, кроме стартовой
@@ -62,8 +62,8 @@ func (h *Handler) cmdStart(
 	tgUser := update.Message.From
 	err := h.handleWelcome(ctx, tgUser)
 	if err != nil {
-		h.logger.Println(apperrors.ErrUnknownMethod)
-		return response.NewError(update.Message.Chat.ID, err)
+		h.logger.Println(boterrors.ErrUnknownMethod)
+		return response.NewError(update.Message.Chat.ID, boterrors.ErrUnknownMethod)
 	}
 
 	msg.Text = "Привет, я готов запоминать задачи, начни с /add"

@@ -3,9 +3,11 @@ package api
 import (
 	"fmt"
 	"net/http"
+
 	"todoshnik/internal/api/response"
-	authcontext "todoshnik/internal/auth/context"
 	"todoshnik/internal/task"
+
+	authcontext "todoshnik/internal/auth/context"
 )
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {

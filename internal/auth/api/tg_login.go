@@ -2,9 +2,12 @@ package api
 
 import (
 	"net/http"
+
 	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
+
+	apierrors "todoshnik/internal/api/errors"
 )
 
 func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
@@ -17,13 +20,13 @@ func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.GetByTgId(r.Context(), requestDto.TgUserID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		response.WriteError(w, apierrors.ErrNotFound)
 		return
 	}
 
 	accessToken, err := h.tokenService.Add(r.Context(), user, auth.DeviceTypeBot)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		response.WriteError(w, apierrors.ErrUnauth)
 		return
 	}
 	// TODO может ли пользователь удалиться после получения userService.GetByTgId и перед tokenService.Add и что будет?
