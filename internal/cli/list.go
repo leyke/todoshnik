@@ -11,7 +11,11 @@ import (
 func (h *Handler) list(ctx context.Context, args []string) {
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
 	status := listCmd.String("status", "", "Фильтр по статусу: completed или pending")
-	listCmd.Parse(args[2:])
+	err := listCmd.Parse(args[2:])
+	if err != nil {
+		printErr(err, "ошибка получения параметров команды")
+		return
+	}
 
 	tasks, err := h.taskService.List(
 		ctx,
@@ -21,7 +25,7 @@ func (h *Handler) list(ctx context.Context, args []string) {
 		})
 
 	if err != nil {
-		printErr(err, "Ошибка получения списка задач")
+		printErr(err, "ошибка получения списка задач")
 		return
 	}
 

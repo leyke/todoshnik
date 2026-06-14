@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 
 	authbot "todoshnik/internal/auth/bot"
 	authcontext "todoshnik/internal/auth/context"
@@ -11,10 +11,13 @@ import (
 )
 
 func (h *Handler) handleAuth(ctx context.Context, user *tgbotapi.User) context.Context {
-	tokenCacheKey := "user:" + strconv.FormatInt(user.ID, 10) + ":tg-api-token-key"
+	cacheKey := tokenCacheKey(user.ID)
 
 	// попытка забрать из кеша
-	token, _ := h.cache.Get(ctx, tokenCacheKey).Result()
+	token, err := h.cache.Get(ctx, cacheKey).Result()
+	if err == nil && token != "" {
+		return authcontext.SetToken(ctx, token)
+	}
 
 	if token != "" {
 		ctx = authcontext.SetToken(ctx, token)
@@ -22,7 +25,7 @@ func (h *Handler) handleAuth(ctx context.Context, user *tgbotapi.User) context.C
 	}
 
 	// попытка сгенерировать через апи
-	token, err := h.authHandler.GetToken(ctx, authbot.TgLoginRequestDto{
+	tokenInfo, err := h.authHandler.GetToken(ctx, authbot.TgLoginRequestDto{
 		TgUserID: user.ID,
 		Name:     user.UserName,
 	})
@@ -32,18 +35,24 @@ func (h *Handler) handleAuth(ctx context.Context, user *tgbotapi.User) context.C
 	}
 
 	// вставить в кеш
-	h.cache.Set(ctx, tokenCacheKey, token, botTokenTtl)
+	if err := h.cache.Set(
+		ctx,
+		cacheKey,
+		tokenInfo.AccessToken,
+		botTokenTtl,
+	).Err(); err != nil {
+		h.logger.Printf("cache set error: %v", err)
+	}
 
 	// вставить в контекст
-	ctx = authcontext.SetToken(ctx, token)
+	ctx = authcontext.SetToken(ctx, tokenInfo.AccessToken)
 
 	return ctx
 }
 
 func (h *Handler) handleWelcome(ctx context.Context, user *tgbotapi.User) error {
-	tokenCacheKey := "user:" + strconv.FormatInt(user.ID, 10) + ":tg-api-token-key"
-
-	token, err := h.authHandler.SignInUser(ctx, authbot.TgLoginRequestDto{
+	cacheKey := tokenCacheKey(user.ID)
+	tokenInfo, err := h.authHandler.SignInUser(ctx, authbot.TgLoginRequestDto{
 		TgUserID: user.ID,
 		Name:     user.UserName,
 	})
@@ -51,7 +60,18 @@ func (h *Handler) handleWelcome(ctx context.Context, user *tgbotapi.User) error 
 		return err
 	}
 
-	h.cache.Set(ctx, tokenCacheKey, token, botTokenTtl)
+	if err := h.cache.Set(
+		ctx,
+		cacheKey,
+		tokenInfo.AccessToken,
+		botTokenTtl,
+	).Err(); err != nil {
+		h.logger.Printf("cache set error: %v", err)
+	}
 
 	return nil
+}
+
+func tokenCacheKey(userID int64) string {
+	return fmt.Sprintf("user:%d:tg-api-token-key", userID)
 }

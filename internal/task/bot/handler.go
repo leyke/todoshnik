@@ -6,6 +6,8 @@ import (
 	"todoshnik/internal/client"
 )
 
+const taskAPIURL string = "/tasks/"
+
 type Handler struct {
 	api    *client.ApiClient
 	logger *log.Logger

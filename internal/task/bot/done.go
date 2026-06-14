@@ -8,10 +8,13 @@ import (
 )
 
 func (h *Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
-	response, err := h.api.Post(ctx, "/tasks/"+taskID+"/done", nil)
+	response, err := h.api.Post(ctx, taskAPIURL+taskID+"/done", nil)
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	var task task.Task
 
@@ -19,7 +22,6 @@ func (h *Handler) DoneTask(ctx context.Context, taskID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
 
 	return GetTaskRowText(task), nil
 }

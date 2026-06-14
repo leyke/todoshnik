@@ -27,11 +27,14 @@ func NewTaskMsg(chatID int64, task *task.Task) (tgbotapi.Chattable, error) {
 		Command: tg.CommandTaskDone,
 		Payload: payload,
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	callbackDelete, err := json.Marshal(tg.CallbackQuery{
 		Command: tg.CommandTaskDelete,
 		Payload: payload,
 	})
-
 	if err != nil {
 		return nil, err
 	}

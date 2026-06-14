@@ -67,7 +67,10 @@ func (h *Handler) messageTaskAdd(
 	}
 
 	msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
-	h.sessionStorage.FinishCommand(ctx, tgUser, tg.CommandAdd)
+	err = h.sessionStorage.FinishCommand(ctx, tgUser, tg.CommandAdd)
+	if err != nil {
+		h.logger.Println(err)
+	}
 
 	return msg
 }

@@ -9,15 +9,13 @@ import (
 	apierrors "todoshnik/internal/api/errors"
 )
 
-func WriteJSON(w http.ResponseWriter, status int, data any) error {
+func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		return fmt.Errorf("encode json response: %w", err)
+		http.Error(w, fmt.Sprintf("Ошибка при кодировании JSON: %v", err), http.StatusInternalServerError)
 	}
-
-	return nil
 }
 
 func WriteError(w http.ResponseWriter, err error) {

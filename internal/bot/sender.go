@@ -21,7 +21,11 @@ func (h *Handler) editTgMessage(chatID int64, messageID int, newText string) {
 		messageID,
 		newText,
 	)
-	h.bot.Send(editMsg)
+
+	_, err := h.bot.Send(editMsg)
+	if err != nil {
+		h.logger.Println(err)
+	}
 }
 
 func (h *Handler) deleteTgMessage(chatID int64, messageID int) {
@@ -29,5 +33,9 @@ func (h *Handler) deleteTgMessage(chatID int64, messageID int) {
 		chatID,
 		messageID,
 	)
-	h.bot.Send(deleteMsg)
+
+	_, err := h.bot.Send(deleteMsg)
+	if err != nil {
+		h.logger.Println(err)
+	}
 }

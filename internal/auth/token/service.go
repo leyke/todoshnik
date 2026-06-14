@@ -30,14 +30,14 @@ func (s *Service) Add(ctx context.Context, user *user.User, device auth.DeviceTy
 	hash := HashToken(token, s.cfg.Secret)
 	localTime := time.Now().Add(s.cfg.Ttl).Unix()
 
-	newToken := &Token{
+	tokenObject := &Token{
 		UserID:    user.ID,
 		Hash:      hash,
 		ExpiresAt: localTime,
 		Device:    device,
 	}
 
-	newToken, err := s.repo.Create(ctx, newToken)
+	_, err := s.repo.Create(ctx, tokenObject)
 	if err != nil {
 		return "", err
 	}

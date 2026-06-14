@@ -10,10 +10,10 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
+	"todoshnik/internal/api/response"
 	"todoshnik/internal/app"
 	"todoshnik/internal/config"
 
@@ -33,7 +33,7 @@ type APIHandler struct {
 func NewAPIHandler(services *app.Services, logger *log.Logger, config Config) *APIHandler {
 	return &APIHandler{
 		taskHandler: taskapi.NewHandler(services.TaskService),
-		authHandler: authapi.NewHandler(services.UserService, services.TokenService),
+		authHandler: authapi.NewHandler(services.UserService, services.TokenService, logger),
 		logger:      logger,
 		config:      config,
 	}
@@ -67,5 +67,5 @@ func (h *APIHandler) Shutdown(ctx context.Context) error {
 }
 
 func (h *APIHandler) pingHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "pong")
+	response.WriteJSON(w, http.StatusOK, "pong")
 }

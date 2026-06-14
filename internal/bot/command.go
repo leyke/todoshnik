@@ -79,7 +79,12 @@ func (h *Handler) cmdAdd(
 	tgUser := update.Message.From
 
 	if args == "" {
-		h.sessionStorage.StartCommand(ctx, tgUser, tg.CommandAdd)
+		err := h.sessionStorage.StartCommand(ctx, tgUser, tg.CommandAdd)
+		if err != nil {
+			h.logger.Println(err)
+			return response.NewError(update.Message.Chat.ID, err)
+		}
+
 		msg.Text = "Напиши задачу и я её запомню!"
 		return &msg
 	}
@@ -148,7 +153,14 @@ func (h *Handler) cmdTaskList(
 			h.logger.Println("handleCommand | Ошибка создания сообщения с задачей", err)
 			continue
 		}
-		h.bot.Send(taskMsg)
+		_, err = h.bot.Send(taskMsg)
+		if err != nil {
+			h.logger.Printf(
+				"handleCommand | Ошибка отправки сообщения: %v",
+				err,
+			)
+			continue
+		}
 	}
 
 	msg.Text = "Вот твои задачи"

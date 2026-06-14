@@ -3,25 +3,27 @@ package bot
 import (
 	"context"
 	"encoding/json"
-	
+
 	"todoshnik/internal/task"
 )
 
 func (h *Handler) Add(ctx context.Context, taskTitle string) (*task.Task, error) {
-	response, err := h.api.Post(ctx, "/tasks", CreateTaskRequest{
+	response, err := h.api.Post(ctx, taskAPIURL, CreateTaskRequest{
 		Title: taskTitle,
 	})
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
 
-	var task *task.Task
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
-	err = json.NewDecoder(response.Body).Decode(&task)
-	if err != nil {
+	var t task.Task
+
+	if err := json.NewDecoder(response.Body).Decode(&t); err != nil {
 		return nil, err
 	}
 
-	return task, nil
+	return &t, nil
 }

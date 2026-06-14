@@ -204,7 +204,10 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {

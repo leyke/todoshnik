@@ -6,32 +6,40 @@ import (
 	"fmt"
 
 	apierrors "todoshnik/internal/api/errors"
+	tokenerror "todoshnik/internal/auth/token/errors"
 )
 
-func (h *Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
+const tgSignInURL string = "/auth/tg/auto-reg"
+
+func (h *Handler) SignInUser(ctx context.Context, tgUser TgLoginRequestDto) (*AuthInfo, error) {
 	response, err := h.api.Post(
 		ctx,
-		"/auth/tg/auto-reg",
+		tgSignInURL,
 		tgUser,
 	)
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer response.Body.Close()
 
 	var responseInfo UserAuthInfoResponseDto
-
-	err = json.NewDecoder(response.Body).Decode(&responseInfo)
-	if err != nil {
-		return "", apierrors.ErrInvalidJSON
+	if err := json.NewDecoder(response.Body).Decode(&responseInfo); err != nil {
+		return nil, fmt.Errorf("%w: %v", apierrors.ErrInvalidJSON, err)
 	}
 
-	if responseInfo.AccessToken != "" {
-		return responseInfo.AccessToken, nil
+	if responseInfo.AccessToken == "" {
+		return nil, fmt.Errorf(
+			"%w for user id %d",
+			tokenerror.ErrNotFound,
+			responseInfo.UserID,
+		)
 	}
 
-	return "", fmt.Errorf(
-		"Ошибка получения токена из: %v",
-		responseInfo,
-	)
+	return &AuthInfo{
+		UserID:      responseInfo.UserID,
+		AccessToken: responseInfo.AccessToken,
+	}, nil
 }

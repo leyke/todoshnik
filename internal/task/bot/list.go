@@ -14,11 +14,13 @@ func (h *Handler) List(ctx context.Context, status string) ([]*task.Task, error)
 		params.Add("status", status)
 	}
 
-	response, err := h.api.Get(ctx, "/tasks", params)
+	response, err := h.api.Get(ctx, taskAPIURL, params)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	var tasks []*task.Task
 

@@ -26,7 +26,15 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !auth.ComparePassword(user.PasswordHash, requestDto.Password) {
+	isMatch, err := auth.ComparePassword(user.PasswordHash, requestDto.Password)
+
+	if err != nil {
+		h.logger.Printf("ошибка проверки пароля: %v", err)
+		response.WriteError(w, fmt.Errorf("%w: ошибка проверки пароля", apierrors.ErrUnauth))
+		return
+	}
+
+	if !isMatch {
 		response.WriteError(w, fmt.Errorf("%w: неверный логин или пароль", apierrors.ErrUnauth))
 		return
 	}

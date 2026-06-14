@@ -22,8 +22,7 @@ func NewDbRepository(db *gorm.DB) *DBRepository {
 
 // ты принимаешь один userID и может вернуться коллекция? У пользователя может быть много токенов?
 func (repo *DBRepository) GetAllByUserID(ctx context.Context, userID int) ([]*Token, error) {
-	var result []*Token
-	result = make([]*Token, 0)
+	result := make([]*Token, 0)
 	err := repo.db.WithContext(ctx).Where("user_id = ?", userID).Find(&result).Error
 	if err != nil {
 		return nil, err

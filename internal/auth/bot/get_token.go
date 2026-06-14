@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
+	tokenerror "todoshnik/internal/auth/token/errors"
 )
 
-func (h *Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (string, error) {
-	// 1. Хардкод путей это криминал– выносим в переменные пакета/константы. Я бы рассматривал этот компонент как клиент
-	// и соовтветственно разместил его на инфраструктурном слое.
-	// 2. В данном случе возврат базовых скалярных типов это норм, но если клиент возвращает что-то более существенное-
-	// лучше заводить доменные типы
-	// плоховато что ошибка не специфицирована
+const tgAuthLoginURL string = "/auth/tg/login"
+
+func (h *Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (*AuthInfo, error) {
+
 	// 3. Распространенная ошибка– в сетевых клиентах не устанавливать таймаут. В продакшн коде должен быть:
 	// - прокинут контекст с дедлайном или таймаутом
 	// - настроены таймауты через изменяемый без перезагрузки конфиг, или по крайней мере изменяемый при перезагрузке
@@ -20,28 +21,38 @@ func (h *Handler) GetToken(ctx context.Context, tgUser TgLoginRequestDto) (strin
 	// - может быть какие-то ручки деградации/circuit breaker
 	response, err := h.api.Post(
 		ctx,
-		"/auth/tg/login",
+		tgAuthLoginURL,
 		tgUser,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(
+			"unexpected status code: %d",
+			response.StatusCode,
+		)
+	}
 
 	var responseInfo UserAuthInfoResponseDto
-
-	err = json.NewDecoder(response.Body).Decode(&responseInfo)
-	if err != nil {
-		return "", err
+	if err := json.NewDecoder(response.Body).Decode(&responseInfo); err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
-	if responseInfo.AccessToken != "" {
-		return responseInfo.AccessToken, nil
+	if responseInfo.AccessToken == "" {
+		return nil, fmt.Errorf(
+			"%w for user id %d",
+			tokenerror.ErrNotFound,
+			responseInfo.UserID,
+		)
 	}
 
-	return "", fmt.Errorf(
-		// не надо врпапать через v, это ничего не дает, лучше %w
-		"Ошибка получения токена из: %v",
-		responseInfo,
-	)
+	return &AuthInfo{
+		UserID:      responseInfo.UserID,
+		AccessToken: responseInfo.AccessToken,
+	}, nil
 }

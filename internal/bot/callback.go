@@ -32,7 +32,11 @@ func (h *Handler) handleCallbackUpdate(ctx context.Context, update tgbotapi.Upda
 		h.logger.Println(err)
 		return response.NewError(update.Message.Chat.ID, err)
 	}
-	h.bot.Request(tgbotapi.NewCallback(query.ID, ""))
+
+	_, err = h.bot.Request(tgbotapi.NewCallback(query.ID, ""))
+	if err != nil {
+		h.logger.Println(err)
+	}
 
 	handlers := h.callbackHandlers()
 

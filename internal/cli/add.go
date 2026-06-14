@@ -7,7 +7,7 @@ import (
 
 func (h *Handler) add(ctx context.Context, args []string) {
 	if len(args) < 3 {
-		printErr(errors.New("Не указано название задачи"), "")
+		printErr(errors.New("не указано название задачи"), "")
 		return
 	}
 
@@ -15,13 +15,13 @@ func (h *Handler) add(ctx context.Context, args []string) {
 
 	taskID, err := getIntFromArgs(args, 3)
 	if err != nil {
-		printErr(err, "Ошибка ID")
+		printErr(err, "ошибка ID")
 		return
 	}
 
 	createdTask, err := h.taskService.Add(ctx, title, taskID)
 	if err != nil {
-		printErr(err, "Ошибка создания")
+		printErr(err, "ошибка создания")
 		return
 	}
 
