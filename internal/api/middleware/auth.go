@@ -1,98 +1,76 @@
 package middleware
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"strings"
 
-	authapi "todoshnik/internal/auth/api"
 	authcontext "todoshnik/internal/auth/context"
 )
 
-func Auth(ah *authapi.Handler) func(http.Handler) http.Handler {
+const (
+	headerServiceToken string = "X-Bot-Service-Token"
+	headerAuth         string = "Authorization"
+)
+
+type Authorizer interface {
+	Authorize(
+		ctx context.Context,
+		token string,
+	) (int, error)
+}
+
+func Auth(authorizer Authorizer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tokenString, ok := extractTokenFromHeader(r)
-			if !ok {
-				http.Error(w, "Unauthorized: не передан токен", http.StatusUnauthorized)
-				return
-			}
+		hfn := func(w http.ResponseWriter, r *http.Request) {
+			tokenString := tokenFromHeader(r)
 
-			user, err := ah.GetAuthorizedUser(r.Context(), tokenString)
+			userID, err := authorizer.Authorize(r.Context(), tokenString)
 			if err != nil {
-				// ты тут где-то логируешь, где-то не логируешь что немного смотрится неоднородно, но основная проблема
-				// что написать юнит тест на такую функцию сложно: у нее много сайд эфектов: это и логирование (на что
-				// можно подзабить и не тестировать), а еще вызов http.Error. Крч написать тест на такое тяжело,
-				// нужно будет мокать.
-				// 1. Нужно стараться писать чисые фукции и вытаскивать сайд-эфекты наружу
-				// 2. Тут у меня нет сильно мнения, все таки это мидлваря, но даже тут можно выделить чистую функцию и
-				//    возвращать результат и ошибку
-				// 3. В целом функция которая возвращает замыкание внутри другого замыкания выглядит странновато, тем
-				//    более я не вижу особо какого-то захвата переменных и скоупа
-				http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
-			ctx := authcontext.SetUser(r.Context(), user)
+			ctx := authcontext.SetUserID(r.Context(), userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+		}
+
+		return http.HandlerFunc(hfn)
 	}
 }
 
-func extractTokenFromHeader(r *http.Request) (string, bool) {
-	// я бы советова выносить все строковые литералы в неимпортируемые константы/переменные
-	authHeader := r.Header.Get("Authorization")
+func tokenFromHeader(r *http.Request) string {
+	headerValue := r.Header.Get(headerAuth)
+	parts := strings.Fields(headerValue)
 
-	// опять же про чистые функции и тестирование, можно все что ниже вынести в отдельную неимпортированную функцию
-	// пакета, покрыть ее табличным тестом и будет хорошо и без лишних щависимостей и ты разделить логику извлечения
-	// заголовка от санитации какой-то
-
-	// - n > 0: at most n substrings; the last substring will be the unsplit remainder;
-	// если будет передано bearer hello awesome world, то все равно вернется 2 части, это точно тебя устраивает?
-	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 {
-		return "", false
+		return ""
 	}
 
-	// заголовки в http регистронезависимы, могут быть проблемы
 	if !strings.EqualFold(parts[0], "Bearer") {
-		return "", false
+		return ""
 	}
 
-	token := strings.TrimSpace(parts[1])
-	if token == "" {
-		return "", false
-	}
-
-	return token, true
+	return parts[1]
 }
 
-// аргумент не используется, это для совместимости с интерфейсом?
 func BotAuth(botServiceToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// аналогично– вынести заголовки в константы
-			authHeader := r.Header.Get("X-Bot-Service-Token")
+		hfn := func(w http.ResponseWriter, r *http.Request) {
+			token := r.Header.Get(headerServiceToken)
 
-			token := strings.TrimSpace(authHeader)
-			if token == "" {
-				// вынести ошибки в переменные пакета
-				// ErrUnauthorized = errors.New("Unauthorized: не передан токен: %w", http.StatusUnauthorized)
-				// ...
-				// return ErrUnauthorized
-				// или
-				// http.Error(w, ErrUnauthorized)
-				http.Error(w, "Unauthorized: не передан токен", http.StatusUnauthorized)
-				return
-			}
-
-			if token != botServiceToken {
-				fmt.Printf("Неверный сервисный токен бота")
-				http.Error(w, "Unauthorized: сервисный токен не верен", http.StatusUnauthorized)
+			if ok := validateServiceToken(token, botServiceToken); !ok {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
 			next.ServeHTTP(w, r)
-		})
+		}
+
+		return http.HandlerFunc(hfn)
 	}
+}
+
+func validateServiceToken(actual string, expected string) bool {
+	return actual != "" && actual == expected
 }

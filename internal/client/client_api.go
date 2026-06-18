@@ -13,7 +13,7 @@ import (
 	authcontext "todoshnik/internal/auth/context"
 )
 
-var (
+const (
 	headerServiceToken string = "X-Bot-Service-Token"
 	headerAuth         string = "Authorization"
 	headerContentType  string = "Content-Type"
