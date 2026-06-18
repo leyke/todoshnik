@@ -7,6 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO определиться со структурой
+
 // мне не нравится что репозиторий лежит в том же пакете что и токен. Токен выглядит как доменный сервис, а репозиторий
 // это инфраструктурный слой
 
@@ -20,7 +22,6 @@ func NewDbRepository(db *gorm.DB) *DBRepository {
 	}
 }
 
-// ты принимаешь один userID и может вернуться коллекция? У пользователя может быть много токенов?
 func (repo *DBRepository) GetAllByUserID(ctx context.Context, userID int) ([]*Token, error) {
 	result := make([]*Token, 0)
 	err := repo.db.WithContext(ctx).Where("user_id = ?", userID).Find(&result).Error

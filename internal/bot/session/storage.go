@@ -20,6 +20,7 @@ func NewStorage(rdb *redis.Client) *Storage {
 	}
 }
 
+// TODO Вынести
 // Аналогичная претензия– надо вынести инфраструктурную обертку над редисом за интерфейс и на инфраструктурный слой
 
 func (ss *Storage) Set(ctx context.Context, userID int64, command tg.Command, state tg.State) error {

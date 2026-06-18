@@ -10,8 +10,6 @@ import (
 )
 
 func NewClient(cfg config.Config) (*redis.Client, error) {
-	// решена ли проблема холодного старта? Как будет работать приложение/инстанс приложения если один из подов
-	// перезагрузится?
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.Addr,
 		Password: cfg.Redis.Password,
