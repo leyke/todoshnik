@@ -32,10 +32,14 @@
 Запуск `go run cmd/tg_bot/main.go`  
 [@todoshnik_bot](https://t.me/todoshnik_bot)
 
-### Docker
-Классика через `docker compose up --build`
-
-### Миграции
-Требуется `go install github.com/pressly/goose/v3/cmd/goose@latest`
-Накат `make migrate-up`
- 
+### Запуск
+#### Установка зависимостей
+`make deps`
+#### Проверка кода
+`make lint`
+#### Миграции
+##### Применить миграции:
+`make migrate-up`
+#### Docker
+##### Запуск всех сервисов:
+`docker compose up --build`
