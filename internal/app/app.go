@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"todoshnik/internal/auth/token"
 	"todoshnik/internal/config"
+	"todoshnik/internal/domains/task"
+	"todoshnik/internal/domains/token"
+	"todoshnik/internal/domains/user"
 	"todoshnik/internal/infrastructure/db"
-	"todoshnik/internal/task"
-	"todoshnik/internal/user"
 
 	rdb "todoshnik/internal/infrastructure/redis"
 
@@ -50,10 +50,10 @@ func InitApp(cfg config.Config) (*App, error) {
 	// logger, logFile это core зависимости, redis зависит от logger по идее и это инфраструктурная зависимость.
 	// TaskService, UserService, TokenService зависят от логера и от инфраструктурной зависимости (бд, редиса).
 	return &App{
-		Services: newServices(dataBase, cfg),
 		Logger:   log,
 		Cache:    redisBase,
 		DB:       dataBase,
+		Services: newServices(dataBase, cfg),
 	}, nil
 }
 

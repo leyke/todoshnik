@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"todoshnik/internal/task"
+	"todoshnik/internal/domains/task"
 )
 
 func printList(list []*task.Task) {

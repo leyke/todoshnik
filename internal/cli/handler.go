@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"todoshnik/internal/app"
-	"todoshnik/internal/auth/token"
-	"todoshnik/internal/task"
+	"todoshnik/internal/domains/task"
+	"todoshnik/internal/domains/token"
 )
 
 type Handler struct {

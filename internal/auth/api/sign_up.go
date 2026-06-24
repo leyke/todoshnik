@@ -8,10 +8,10 @@ import (
 	"todoshnik/internal/api/request"
 	"todoshnik/internal/api/response"
 	"todoshnik/internal/auth"
-	"todoshnik/internal/user"
 	"todoshnik/internal/validation"
 
 	apierrors "todoshnik/internal/api/errors"
+	usererrors "todoshnik/internal/domains/user/errors"
 )
 
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +23,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newUser, err := h.userService.Add(r.Context(), requestDto.Name, requestDto.Login, requestDto.Password)
-	if errors.Is(err, user.ErrConflict) {
+	if errors.Is(err, usererrors.ErrConflict) {
 		response.WriteError(w, fmt.Errorf("%w: пользователь с таким логином уже существует", apierrors.ErrConflict))
 		return
 	}

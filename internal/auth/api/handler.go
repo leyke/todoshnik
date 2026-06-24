@@ -2,8 +2,8 @@ package api
 
 import (
 	"log"
-	"todoshnik/internal/auth/token"
-	"todoshnik/internal/user"
+	"todoshnik/internal/domains/token"
+	"todoshnik/internal/domains/user"
 )
 
 type Handler struct {

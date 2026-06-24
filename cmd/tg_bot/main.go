@@ -6,11 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"todoshnik/internal/app"
-	"todoshnik/internal/bot"
-	"todoshnik/internal/config"
+	"todoshnik/cmd/tg_bot/app"
+	"todoshnik/cmd/tg_bot/app/bot"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"todoshnik/internal/config"
 )
 
 func main() {
@@ -31,18 +30,13 @@ func main() {
 		log.Fatalf("init app: %v", err)
 	}
 
-	botapi, err := tgbotapi.NewBotAPI(cfg.Telegram.Token)
-	if err != nil {
-		log.Fatalf("create bot API: %v", err)
-	}
-	botapi.Debug = cfg.Telegram.Debug
-
 	bh := bot.NewHandler(
 		container,
-		botapi,
 		bot.Config{
-			ApiURL:          cfg.Telegram.BotApiUrl,
-			BotServiceToken: cfg.Telegram.ServiceToken,
+			ApiURL:            cfg.Telegram.BotApiUrl,
+			BotServiceToken:   cfg.Telegram.ServiceToken,
+			SemaphoreSize:     cfg.Telegram.SemaphoreSize,
+			ApiRequestTimeout: cfg.Telegram.ApiRequestTimeOut,
 		},
 	)
 

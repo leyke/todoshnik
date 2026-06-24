@@ -9,6 +9,8 @@ import (
 )
 
 const defaultTokenTTL time.Duration = 7 * 24 * time.Hour
+const defaultApiRequestTimeout time.Duration = 5 * time.Second
+const defaultSemaphoreSize int = 200
 
 func init() {
 	_ = godotenv.Load()
@@ -45,10 +47,12 @@ type RedisConfig struct {
 }
 
 type TelegramConfig struct {
-	Token        string
-	ServiceToken string
-	BotApiUrl    string
-	Debug        bool
+	SemaphoreSize     int
+	Token             string
+	ServiceToken      string
+	BotApiUrl         string
+	ApiRequestTimeOut time.Duration
+	Debug             bool
 }
 
 func Load() (Config, error) {
@@ -60,6 +64,16 @@ func Load() (Config, error) {
 	tokenTtl, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
 	if err != nil {
 		tokenTtl = defaultTokenTTL
+	}
+
+	apiRequestTimeOut, err := time.ParseDuration(os.Getenv("API_REQUEST_TIMEOUT"))
+	if err != nil {
+		tokenTtl = defaultApiRequestTimeout
+	}
+
+	semaphoreSize, err := strconv.Atoi(os.Getenv("BOT_SEMAPHORE_SIZE"))
+	if err != nil {
+		semaphoreSize = 0
 	}
 
 	return Config{
@@ -84,10 +98,12 @@ func Load() (Config, error) {
 			DB:       redisDB,
 		},
 		Telegram: TelegramConfig{
-			Token:        os.Getenv("TELEGRAM_TOKEN"),
-			ServiceToken: os.Getenv("BOT_SERVICE_TOKEN"),
-			BotApiUrl:    os.Getenv("BOT_API_URL"),
-			Debug:        os.Getenv("TELEGRAM_DEBUG") == "1",
+			SemaphoreSize:     semaphoreSize,
+			Token:             os.Getenv("TELEGRAM_TOKEN"),
+			ServiceToken:      os.Getenv("BOT_SERVICE_TOKEN"),
+			BotApiUrl:         os.Getenv("BOT_API_URL"),
+			ApiRequestTimeOut: apiRequestTimeOut,
+			Debug:             os.Getenv("TELEGRAM_DEBUG") == "1",
 		},
 	}, nil
 }

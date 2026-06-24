@@ -4,8 +4,8 @@ import (
 	"context"
 	"flag"
 
+	"todoshnik/internal/domains/task"
 	"todoshnik/internal/identity"
-	"todoshnik/internal/task"
 )
 
 func (h *Handler) list(ctx context.Context, args []string) {

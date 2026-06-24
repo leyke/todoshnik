@@ -21,3 +21,6 @@ migrate-up: deps
 
 clean:
 	rm -rf $(BIN_DIR)
+
+build:
+	docker compose up --build

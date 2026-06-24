@@ -1,16 +1,8 @@
 package api
 
-// TODO определиться со архитектурой
-// приложу сюда, хотя к пакету не относится
-// посмотри, если не видел пример стандартной структуры проекта https://github.com/golang-standards/project-layout
-// может быть наведет на какие-то мысли. В целом мы у себя тоже не придерживаемся строго этого стандарта, но мы следуем
-// гексогональной артхитектуре (по крайней мере насколько мы этим владеем и насколько получается)
-// В целом есть претензии к структуре.
-// Вроде бы есть прекрасные мысли: папки app и infrastructure, но тут же есть cli и client, которые либо сервисы либо
-// инфраструктурные (еще не смотрел). Есть какие-то папки намекающие на доменную логику: task, user.
-
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -19,7 +11,7 @@ import (
 	"todoshnik/internal/config"
 
 	authapi "todoshnik/internal/auth/api"
-	taskapi "todoshnik/internal/task/api"
+	taskapi "todoshnik/internal/domains/task/api"
 )
 
 type APIHandler struct {
@@ -49,15 +41,8 @@ func (h *APIHandler) Run(cfg config.AppConfig) error {
 	h.logger.Println("API hello")
 
 	err := h.server.ListenAndServe()
-	// TODO ListenAndServe решить проблемы
-	// 0. Вопрос: ListenAndServe блокирующий вызов или нет? Как можно сделать по-другому?
-	// 1. ошибку лучше заворачивать в конкретные ошибки, иначе тяжело понять какой компонент за это отвечает,
-	// обязательно это изучи: fmt.Errorf(%w) и error.Join кажется, про джоин отдельная история, им надо пользоваться
-	// в конкретных ситуациях для которых он придуман
-	// 2. почему ты отдельно обрабатываешь http.ErrServerClosed и подавляешь эту ошибку? Разве это не проблема когда
-	// ты пытаешься запустить закрытый/непроинициализированных сервер?
-	if err != nil && err != http.ErrServerClosed {
-		return err
+	if err != nil {
+		return fmt.Errorf("API server error: %w", err)
 	}
 
 	return nil
