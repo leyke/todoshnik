@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"todoshnik/internal/auth"
 	userdomain "todoshnik/internal/domains/user"
 )
 
@@ -21,7 +20,7 @@ func NewService(repo Repository, cfg Config) *Service {
 	}
 }
 
-func (s *Service) Add(ctx context.Context, user *userdomain.User, device auth.DeviceType) (string, error) {
+func (s *Service) Add(ctx context.Context, user *userdomain.User, device DeviceType) (string, error) {
 	token, tokenError := GenerateToken()
 	if tokenError != nil {
 		return "", tokenError

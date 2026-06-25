@@ -8,7 +8,6 @@ import (
 
 	"todoshnik/cmd/tg_bot/app"
 	"todoshnik/cmd/tg_bot/app/bot"
-
 	"todoshnik/internal/config"
 )
 

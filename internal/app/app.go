@@ -11,6 +11,10 @@ import (
 	"todoshnik/internal/domains/user"
 	"todoshnik/internal/infrastructure/db"
 
+	taskrepo "todoshnik/internal/infrastructure/db/repository/task"
+	tokenrepo "todoshnik/internal/infrastructure/db/repository/token"
+	userrepo "todoshnik/internal/infrastructure/db/repository/user"
+
 	rdb "todoshnik/internal/infrastructure/redis"
 
 	"github.com/redis/go-redis/v9"
@@ -44,11 +48,6 @@ func InitApp(cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
-	// TODO тут определиться со структурой
-	// 1. За то что есть структура App- однозначно лайк, но я бы группировал более гранулярно по уровням, потому что
-	// уровни приложения не должны пересекаться и это проявляется на уровне инициализации: инфраструктурные зависимости:
-	// logger, logFile это core зависимости, redis зависит от logger по идее и это инфраструктурная зависимость.
-	// TaskService, UserService, TokenService зависят от логера и от инфраструктурной зависимости (бд, редиса).
 	return &App{
 		Logger:   log,
 		Cache:    redisBase,
@@ -59,9 +58,9 @@ func InitApp(cfg config.Config) (*App, error) {
 
 func newServices(dataBase *gorm.DB, cfg config.Config) *Services {
 	// Репозитории
-	taskRepo := task.NewDbRepository(dataBase)
-	userRepo := user.NewDbRepository(dataBase)
-	tokenRepo := token.NewDbRepository(dataBase)
+	taskRepo := taskrepo.NewDbRepository(dataBase)
+	userRepo := userrepo.NewDbRepository(dataBase)
+	tokenRepo := tokenrepo.NewDbRepository(dataBase)
 
 	return &Services{
 		TaskService: task.NewService(taskRepo),

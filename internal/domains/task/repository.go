@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 
-	"todoshnik/internal/identity"
+	"todoshnik/internal/infrastructure/identity"
 )
 
 type Repository interface {

@@ -1,0 +1,47 @@
+package auth
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+
+	"todoshnik/cmd/api/app/request"
+	"todoshnik/cmd/api/app/response"
+	"todoshnik/internal/domains/token"
+	"todoshnik/internal/infrastructure/validation"
+
+	apierrors "todoshnik/cmd/api/app/errors"
+)
+
+const deviceType = "asd"
+
+func (h *Handler) TgAutoReg(w http.ResponseWriter, r *http.Request) {
+	var requestDto *TgLoginRequestDto
+	requestDto, err := request.DecodeJSON[TgLoginRequestDto](r)
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	user, err := h.userService.AddFromTg(r.Context(), requestDto.Name, requestDto.TgUserID)
+	if errors.Is(err, validation.ErrNotValidate) {
+		response.WriteError(w, fmt.Errorf("%w: данные пользователя недействительны: %w", apierrors.ErrBadRequest, err))
+		return
+	}
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, token.DeviceTypeBot)
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+	// TODO что произойдет если мы выполним AddFromTg и сфейлимся на tokenService.Add?
+
+	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
+		UserID:      user.ID,
+		AccessToken: accessToken,
+	})
+}

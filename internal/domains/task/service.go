@@ -3,8 +3,8 @@ package task
 import (
 	"context"
 
-	"todoshnik/internal/identity"
-	"todoshnik/internal/validation"
+	"todoshnik/internal/infrastructure/identity"
+	"todoshnik/internal/infrastructure/validation"
 )
 
 type Service struct {

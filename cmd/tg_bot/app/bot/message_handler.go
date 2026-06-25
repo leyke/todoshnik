@@ -8,8 +8,8 @@ import (
 	"todoshnik/cmd/tg_bot/app/bot/response"
 
 	boterrors "todoshnik/cmd/tg_bot/app/bot/errors"
-	authcontext "todoshnik/internal/auth/context"
 	client "todoshnik/internal/infrastructure/api_client"
+	authcontext "todoshnik/internal/infrastructure/context_manager/auth"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

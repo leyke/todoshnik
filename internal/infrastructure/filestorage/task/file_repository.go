@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"todoshnik/internal/identity"
+	"todoshnik/internal/infrastructure/identity"
 
 	taskdomain "todoshnik/internal/domains/task"
 	taskerrors "todoshnik/internal/domains/task/errors"

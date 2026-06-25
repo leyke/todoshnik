@@ -4,9 +4,10 @@ import (
 	"log"
 	"os"
 
-	"todoshnik/internal/app"
-	"todoshnik/internal/cli"
+	"todoshnik/cmd/tg_bot/app"
 	"todoshnik/internal/config"
+
+	cli "todoshnik/cmd/cli/app"
 )
 
 func main() {

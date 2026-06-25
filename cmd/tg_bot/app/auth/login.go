@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	apierrors "todoshnik/internal/api/errors"
 	tokenerror "todoshnik/internal/domains/token/errors"
 )
 
@@ -29,7 +28,7 @@ func (h *Handler) Login(ctx context.Context, tgUser TgLoginRequestDto) (*AuthInf
 
 	var responseInfo UserAuthInfoResponseDto
 	if err := json.NewDecoder(response.Body).Decode(&responseInfo); err != nil {
-		return nil, fmt.Errorf("%w: %v", apierrors.ErrInvalidJSON, err)
+		return nil, fmt.Errorf("ошибка декода JSON: %w", err)
 	}
 
 	if responseInfo.AccessToken == "" {

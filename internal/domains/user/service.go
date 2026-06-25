@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"todoshnik/internal/auth"
-	"todoshnik/internal/validation"
+	"todoshnik/internal/infrastructure/validation"
 
 	usererrors "todoshnik/internal/domains/user/errors"
 )
@@ -26,7 +25,7 @@ func (s *Service) Add(ctx context.Context, name string, login string, password s
 		return nil, usererrors.ErrConflict
 	}
 
-	passwordHash := auth.HashPassword(password)
+	passwordHash := HashPassword(password)
 
 	newUser := &User{
 		Name:         name,

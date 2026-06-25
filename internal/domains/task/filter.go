@@ -1,6 +1,6 @@
 package task
 
-import "todoshnik/internal/identity"
+import "todoshnik/internal/infrastructure/identity"
 
 type Status string
 

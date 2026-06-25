@@ -7,9 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"todoshnik/internal/api"
 	"todoshnik/internal/app"
 	"todoshnik/internal/config"
+
+	server "todoshnik/cmd/api/app"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 		log.Fatalf("init app: %v", err)
 	}
 
-	apiHandler := api.NewAPIHandler(container.Services, container.Logger, api.Config{BotServiceToken: cfg.Telegram.ServiceToken})
+	apiHandler := server.NewAPIHandler(container.Services, container.Logger, server.Config{BotServiceToken: cfg.Telegram.ServiceToken})
 
 	go func() {
 		if err := apiHandler.Run(cfg.App); err != nil {

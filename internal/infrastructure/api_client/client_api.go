@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	authcontext "todoshnik/internal/auth/context"
+	authcontext "todoshnik/internal/infrastructure/context_manager/auth"
 )
 
 const (
