@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 
 	"todoshnik/cmd/tg_bot/app/bot/command"
 	"todoshnik/cmd/tg_bot/app/bot/response"
@@ -32,12 +31,22 @@ func (h *Handler) handleMessageUpdate(ctx context.Context, update tgbotapi.Updat
 
 	lastCommand, ok := h.commandStorage.GetLastCommand(ctx, tgUser.ID)
 	if !ok {
-		msg.Text = "Я забыл на чем мы остановились, повтори ввод команды"
+		msgText, err := response.RenderStateEmpty()
+		if err != nil {
+			h.logger.Println(err)
+			return response.NewError(update.Message.Chat.ID, err)
+		}
+		msg.Text = msgText
 		return &msg
 	}
 
 	if lastCommand.State != command.StateWait {
-		msg.Text = "Я уже все сделал, начни новую команду"
+		msgText, err := response.RenderStateDone()
+		if err != nil {
+			h.logger.Println(err)
+			return response.NewError(update.Message.Chat.ID, err)
+		}
+		msg.Text = msgText
 		return &msg
 	}
 
@@ -76,7 +85,13 @@ func (h *Handler) messageTaskAdd(
 		return response.NewError(update.Message.Chat.ID, err)
 	}
 
-	msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
+	msgText, err := response.RenderAddSuccess(task.Title)
+	if err != nil {
+		h.logger.Println(err)
+		return response.NewError(update.Message.Chat.ID, err)
+	}
+	msg.Text = msgText
+
 	err = h.commandStorage.FinishCommand(ctx, tgUser.ID, command.CommandAdd)
 	if err != nil {
 		h.logger.Println(err)

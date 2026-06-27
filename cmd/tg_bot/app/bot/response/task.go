@@ -2,6 +2,7 @@ package response
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"todoshnik/cmd/tg_bot/app/bot/callback"
@@ -29,7 +30,7 @@ func NewTaskMsg(chatID int64, task *task.Task) (tgbotapi.Chattable, error) {
 		Payload: payload,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marhal callback done: %w", err)
 	}
 
 	callbackDelete, err := json.Marshal(callback.CallbackQuery{
@@ -37,7 +38,7 @@ func NewTaskMsg(chatID int64, task *task.Task) (tgbotapi.Chattable, error) {
 		Payload: payload,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marhal callback delete: %w", err)
 	}
 
 	// Кнопка снять/добавить галочку (выполнен или нет)

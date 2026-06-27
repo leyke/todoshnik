@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 
 	"todoshnik/cmd/tg_bot/app/bot/command"
 	"todoshnik/cmd/tg_bot/app/bot/response"
@@ -75,7 +74,14 @@ func (h *Handler) cmdStart(
 		return response.NewError(update.Message.Chat.ID, client.ErrUnAuth)
 	}
 
-	msg.Text = "Привет, я готов запоминать задачи, начни с /add"
+	text, err := response.RenderStart()
+	if err != nil {
+		h.logger.Println(err)
+		return response.NewError(update.Message.Chat.ID, err)
+	}
+
+	msg.Text = text
+
 	return &msg
 }
 
@@ -94,7 +100,14 @@ func (h *Handler) cmdAdd(
 			return response.NewError(update.Message.Chat.ID, err)
 		}
 
-		msg.Text = "Напиши задачу и я её запомню!"
+		text, err := response.RenderAddRequest()
+		if err != nil {
+			h.logger.Println(err)
+			return response.NewError(update.Message.Chat.ID, err)
+		}
+
+		msg.Text = text
+
 		return &msg
 	}
 
@@ -104,7 +117,12 @@ func (h *Handler) cmdAdd(
 		return response.NewError(update.Message.Chat.ID, err)
 	}
 
-	msg.Text = fmt.Sprintf("Добавил: %s", task.Title)
+	text, err := response.RenderAddSuccess(task.Title)
+	if err != nil {
+		h.logger.Println(err)
+		return response.NewError(update.Message.Chat.ID, err)
+	}
+	msg.Text = text
 
 	return &msg
 }
@@ -115,7 +133,12 @@ func (h *Handler) cmdHelp(
 	args string,
 ) tgbotapi.Chattable {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	msg.Text = "Я могу /add, /list, /status и /restart."
+	text, err := response.RenderHelp()
+	if err != nil {
+		h.logger.Println(err)
+		return response.NewError(update.Message.Chat.ID, err)
+	}
+	msg.Text = text
 
 	return &msg
 }
@@ -143,16 +166,13 @@ func (h *Handler) cmdTaskList(
 		return response.NewError(update.Message.Chat.ID, err)
 	}
 
-	// TODO подключить шаблонизатор
-	// мне бы не понравились куски тескта прямо в коде, надо резделять доменную логику, слой данных и представление
-	// я бы для каждой команды/реплики сделал небольшой шаблон, организовал бы натягивание этих шаблонов на модель.
-	// Да это более хлопотно, но в поддержке было бы гораздо проще (возможно). По крайней мере потом по коду искать
-	// и пытаться понять почему то или иное сообщение вывелось будет довольно хлопотно. Изучи стандрантую шаблонизацию
-	// в ГО: есть пакет https://pkg.go.dev/text/template и аналогичный html/template.
-	// Надо проработать с моделями comand и под каждую команду завести свою структуду данных, необходимую для рендера
-	// шаблона, шаблоны можно положить в подчиненный пакет
 	if len(tasks) == 0 {
-		msg.Text = "У меня пока нет твоих задач. Давай добавим /add"
+		text, err := response.RenderListEmpty()
+		if err != nil {
+			h.logger.Println(err)
+			return response.NewError(update.Message.Chat.ID, err)
+		}
+		msg.Text = text
 
 		return &msg
 	}
@@ -160,20 +180,22 @@ func (h *Handler) cmdTaskList(
 	for _, task := range tasks {
 		taskMsg, err := response.NewTaskMsg(update.Message.Chat.ID, task)
 		if err != nil {
-			h.logger.Println("handleCommand | Ошибка создания сообщения с задачей", err)
+			h.logger.Println("handleCommand | Ошибка создания сообщения с задачей: %v", err)
 			continue
 		}
 		_, err = h.bot.Send(taskMsg)
 		if err != nil {
-			h.logger.Printf(
-				"handleCommand | Ошибка отправки сообщения: %v",
-				err,
-			)
+			h.logger.Printf("handleCommand | Ошибка отправки сообщения: %v", err)
 			continue
 		}
 	}
 
-	msg.Text = "Вот твои задачи"
+	text, err := response.RenderListSuccess()
+	if err != nil {
+		h.logger.Println(err)
+		return response.NewError(update.Message.Chat.ID, err)
+	}
+	msg.Text = text
 
 	return &msg
 }
