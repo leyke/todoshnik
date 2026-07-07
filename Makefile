@@ -7,6 +7,9 @@ export PATH := $(BIN_DIR):$(PATH)
 GOOSE_VERSION := v3.27.1
 GOLANGCI_LINT_VERSION := v2.12.2
 
+VERSION := $(shell git describe --tags --always)
+COMMIT := $(shell git rev-parse --short HEAD)
+
 .PHONY: deps lint migrate-up
 
 deps:
@@ -23,4 +26,8 @@ clean:
 	rm -rf $(BIN_DIR)
 
 build:
-	docker compose up --build
+	docker compose build \
+		--build-arg APP_VERSION=$(VERSION) \
+		--build-arg APP_COMMIT_HASH=$(COMMIT)
+
+	docker compose up

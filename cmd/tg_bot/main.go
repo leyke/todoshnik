@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
@@ -11,7 +12,15 @@ import (
 	"todoshnik/internal/config"
 )
 
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
+
 func main() {
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
+
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,

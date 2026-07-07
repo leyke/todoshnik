@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -10,7 +11,15 @@ import (
 	cli "todoshnik/cmd/cli/app"
 )
 
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
+
 func main() {
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("load config: %v", err)

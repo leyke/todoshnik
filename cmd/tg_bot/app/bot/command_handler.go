@@ -180,12 +180,12 @@ func (h *Handler) cmdTaskList(
 	for _, task := range tasks {
 		taskMsg, err := response.NewTaskMsg(update.Message.Chat.ID, task)
 		if err != nil {
-			h.logger.Println("handleCommand | Ошибка создания сообщения с задачей: %v", err)
+			h.logger.Println("handleCommand | Ошибка создания сообщения с задачей:", err)
 			continue
 		}
 		_, err = h.bot.Send(taskMsg)
 		if err != nil {
-			h.logger.Printf("handleCommand | Ошибка отправки сообщения: %v", err)
+			h.logger.Println("handleCommand | Ошибка отправки сообщения:", err)
 			continue
 		}
 	}

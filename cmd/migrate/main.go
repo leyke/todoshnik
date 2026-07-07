@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"todoshnik/internal/config"
@@ -9,7 +10,15 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
+
 func main() {
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)

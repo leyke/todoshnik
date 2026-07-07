@@ -2,6 +2,7 @@ package response
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"text/template"
 
@@ -9,26 +10,28 @@ import (
 )
 
 const (
-	addSuccessTemplate  = "cmd/tg_bot/app/bot/response/templates/add_success.tmpl"
-	addRequestTemplate  = "cmd/tg_bot/app/bot/response/templates/add_request.tmpl"
-	helpTemplate        = "cmd/tg_bot/app/bot/response/templates/help.tmpl"
-	listEmptyTemplate   = "cmd/tg_bot/app/bot/response/templates/list_empty.tmpl"
-	listSuccessTemplate = "cmd/tg_bot/app/bot/response/templates/list_success.tmpl"
-	startTemplate       = "cmd/tg_bot/app/bot/response/templates/start.tmpl"
-	stateEmptyTemplate  = "cmd/tg_bot/app/bot/response/templates/state_empty.tmpl"
-	stateDoneTemplate   = "cmd/tg_bot/app/bot/response/templates/state_done.tmpl"
+	addSuccessTemplate  = "templates/add_success.tmpl"
+	addRequestTemplate  = "templates/add_request.tmpl"
+	helpTemplate        = "templates/help.tmpl"
+	listEmptyTemplate   = "templates/list_empty.tmpl"
+	listSuccessTemplate = "templates/list_success.tmpl"
+	startTemplate       = "templates/start.tmpl"
+	stateEmptyTemplate  = "templates/state_empty.tmpl"
+	stateDoneTemplate   = "templates/state_done.tmpl"
 )
 
+//go:embed templates/*.tmpl
+var templatesFS embed.FS
+
 func Render(tpl string, data any) (string, error) {
-	t, err := template.ParseFiles(tpl)
+	t, err := template.ParseFS(templatesFS, tpl)
 	if err != nil {
 		return "", fmt.Errorf("парсинг шаблона: %w", err)
 	}
 
 	var buf bytes.Buffer
 
-	err = t.Execute(&buf, data)
-	if err != nil {
+	if err := t.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("рендер шаблона: %w", err)
 	}
 
@@ -46,7 +49,7 @@ func RenderAddSuccess(title string) (string, error) {
 
 func RenderAddRequest() (string, error) {
 	return Render(
-		addSuccessTemplate,
+		addRequestTemplate,
 		models.AddRequestData{},
 	)
 }

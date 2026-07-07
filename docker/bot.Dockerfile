@@ -1,5 +1,8 @@
 FROM golang:1.26.4-alpine AS builder
 
+ARG APP_VERSION=dev
+ARG APP_COMMIT_HASH=unknown
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -7,7 +10,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o bot ./cmd/tg_bot
+RUN go build \
+    -ldflags="-X main.AppVersion=${APP_VERSION} -X main.CommitHash=${APP_COMMIT_HASH}" \
+    -o bot ./cmd/tg_bot
 
 FROM alpine:3.23
 
