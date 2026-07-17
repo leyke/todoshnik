@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 
 	"todoshnik/cmd/api/app/request"
@@ -8,6 +9,7 @@ import (
 	"todoshnik/internal/domains/token"
 
 	apierrors "todoshnik/cmd/api/app/errors"
+	tokenerror "todoshnik/internal/domains/token/errors"
 )
 
 func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
@@ -25,11 +27,16 @@ func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accessToken, err := h.tokenService.Add(r.Context(), user, token.DeviceTypeApi)
+
+	if errors.Is(err, tokenerror.ErrUserNotFound) {
+		response.WriteError(w, apierrors.ErrNotFound)
+		return
+	}
+
 	if err != nil {
 		response.WriteError(w, apierrors.ErrUnauth)
 		return
 	}
-	// TODO может ли пользователь удалиться после получения userService.GetByTgId и перед tokenService.Add и что будет?
 
 	response.WriteJSON(w, http.StatusOK, AuthResponseDto{
 		UserID:      user.ID,

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     user_id INT,
     hash VARCHAR(255),
     device VARCHAR(255),
-    expires_at BIGINT
+    expires_at TIMESTAMPTZ NOT NULL
 );
 
 -- +goose Down

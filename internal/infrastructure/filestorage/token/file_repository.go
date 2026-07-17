@@ -84,10 +84,11 @@ func (repo *FileRepository) GetExpiredTokens(ctx context.Context) ([]*tokendomai
 	default:
 	}
 
-	localTime := time.Now().Unix()
+	localTime := time.Now()
+
 	result := make([]*tokendomain.Token, 0, len(repo.items))
 	for _, token := range repo.items {
-		if token.ExpiresAt < localTime {
+		if token.ExpiresAt.Before(localTime) {
 			result = append(result, token)
 		}
 	}

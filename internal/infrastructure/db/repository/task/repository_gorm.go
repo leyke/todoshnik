@@ -12,17 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type DBRepository struct {
+// deprecated оставил для примера работы с gorm
+type GormDBRepository struct {
 	db *gorm.DB
 }
 
-func NewDbRepository(db *gorm.DB) *DBRepository {
-	return &DBRepository{
+func NewGormRepository(db *gorm.DB) *GormDBRepository {
+	return &GormDBRepository{
 		db: db,
 	}
 }
 
-func (repo *DBRepository) List(ctx context.Context, filter task.TaskFilter) ([]*task.Task, error) {
+func (repo *GormDBRepository) List(ctx context.Context, filter task.TaskFilter) ([]*task.Task, error) {
 	var items []*task.Task
 
 	where := make(map[string]any)
@@ -46,7 +47,7 @@ func (repo *DBRepository) List(ctx context.Context, filter task.TaskFilter) ([]*
 	return items, nil
 }
 
-func (repo *DBRepository) GetByID(ctx context.Context, id int, scope identity.AccessScope) (*task.Task, error) {
+func (repo *GormDBRepository) GetByID(ctx context.Context, id int, scope identity.AccessScope) (*task.Task, error) {
 	var item *task.Task
 
 	query := repo.db.WithContext(ctx)
@@ -68,7 +69,7 @@ func (repo *DBRepository) GetByID(ctx context.Context, id int, scope identity.Ac
 	return item, nil
 }
 
-func (repo *DBRepository) Create(ctx context.Context, task *task.Task) (*task.Task, error) {
+func (repo *GormDBRepository) Create(ctx context.Context, task *task.Task) (*task.Task, error) {
 	result := repo.db.WithContext(ctx).Create(task)
 	if result.Error != nil {
 		return nil, result.Error
@@ -77,7 +78,7 @@ func (repo *DBRepository) Create(ctx context.Context, task *task.Task) (*task.Ta
 	return task, nil
 }
 
-func (repo *DBRepository) Update(ctx context.Context, task *task.Task) error {
+func (repo *GormDBRepository) Update(ctx context.Context, task *task.Task) error {
 	result := repo.db.WithContext(ctx).Save(task)
 	if result.Error != nil {
 		return result.Error
@@ -86,7 +87,7 @@ func (repo *DBRepository) Update(ctx context.Context, task *task.Task) error {
 	return nil
 }
 
-func (repo *DBRepository) Delete(ctx context.Context, task *task.Task) error {
+func (repo *GormDBRepository) Delete(ctx context.Context, task *task.Task) error {
 	result := repo.db.WithContext(ctx).Delete(task)
 	if result.Error != nil {
 		return result.Error

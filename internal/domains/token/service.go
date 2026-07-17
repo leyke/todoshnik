@@ -27,7 +27,7 @@ func (s *Service) Add(ctx context.Context, user *userdomain.User, device DeviceT
 	}
 
 	hash := HashToken(token, s.cfg.Secret)
-	localTime := time.Now().Add(s.cfg.Ttl).Unix()
+	localTime := time.Now().Add(s.cfg.Ttl)
 
 	tokenObject := &Token{
 		UserID:    user.ID,

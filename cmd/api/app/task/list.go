@@ -34,6 +34,10 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if tasks == nil {
+		tasks = []*task.Task{}
+	}
+
 	fmt.Printf("UserID: %d | Запрошены задачи\n", scope.UserID)
 	response.WriteJSON(w, http.StatusOK, tasks)
 }

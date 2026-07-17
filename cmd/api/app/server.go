@@ -9,6 +9,7 @@ import (
 	"todoshnik/cmd/api/app/response"
 	"todoshnik/internal/app"
 	"todoshnik/internal/config"
+	"todoshnik/internal/infrastructure/db/transaction"
 
 	authapi "todoshnik/cmd/api/app/auth"
 	taskapi "todoshnik/cmd/api/app/task"
@@ -23,10 +24,10 @@ type APIHandler struct {
 	config Config
 }
 
-func NewAPIHandler(services *app.Services, logger *log.Logger, config Config) *APIHandler {
+func NewAPIHandler(services *app.Services, logger *log.Logger, transactor *transaction.Transactor, config Config) *APIHandler {
 	return &APIHandler{
 		taskHandler: taskapi.NewHandler(services.TaskService),
-		authHandler: authapi.NewHandler(services.UserService, services.TokenService, logger),
+		authHandler: authapi.NewHandler(services.UserService, services.TokenService, logger, transactor),
 		logger:      logger,
 		config:      config,
 	}

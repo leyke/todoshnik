@@ -12,6 +12,9 @@ const defaultTokenTTL time.Duration = 7 * 24 * time.Hour
 const defaultApiRequestTimeout time.Duration = 5 * time.Second
 const defaultSemaphoreSize int = 200
 
+const defaultDbMaxOpenConnections = 25
+const defaultDbMaxIdleConnections = 10
+
 func init() {
 	_ = godotenv.Load()
 }
@@ -32,12 +35,14 @@ type AppConfig struct {
 }
 
 type PostgresConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+	Host                 string
+	Port                 string
+	User                 string
+	Password             string
+	DBName               string
+	SSLMode              string
+	DbMaxOpenConnections int
+	DbMaxIdleConnections int
 }
 
 type RedisConfig struct {
@@ -73,7 +78,17 @@ func Load() (Config, error) {
 
 	semaphoreSize, err := strconv.Atoi(os.Getenv("BOT_SEMAPHORE_SIZE"))
 	if err != nil {
-		semaphoreSize = 0
+		semaphoreSize = defaultSemaphoreSize
+	}
+
+	dbMaxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNS"))
+	if err != nil {
+		semaphoreSize = defaultDbMaxOpenConnections
+	}
+
+	dbMaxIdleConnections, err := strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNS"))
+	if err != nil {
+		semaphoreSize = defaultDbMaxIdleConnections
 	}
 
 	return Config{
@@ -91,6 +106,9 @@ func Load() (Config, error) {
 			Password: os.Getenv("DB_PASSWORD"),
 			DBName:   os.Getenv("DB_NAME"),
 			SSLMode:  os.Getenv("DB_SSLMODE"),
+
+			DbMaxOpenConnections: dbMaxOpenConnections,
+			DbMaxIdleConnections: dbMaxIdleConnections,
 		},
 		Redis: RedisConfig{
 			Addr:     os.Getenv("REDIS_ADDR"),

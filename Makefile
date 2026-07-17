@@ -14,9 +14,11 @@ COMMIT := $(shell git rev-parse --short HEAD)
 
 deps:
 	GOBIN=$(BIN_DIR) go install github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION)
+
+lint-deps:
 	GOBIN=$(BIN_DIR) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-lint: deps
+lint: lint-deps
 	golangci-lint run
 
 migrate-up: deps
