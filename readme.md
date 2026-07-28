@@ -1,45 +1,76 @@
-
 # Тудушник
-Приложение сохраняющее задачи в память и отмечающее их статус. Собираю как практику после изучения Golang
 
-## О себе
-[Структура](https://github.com/leyke/todoshnik/blob/main/docs/structure.md)
+`todoshnik` — Go-приложение для управления задачами.
 
-Стэк:
-- Go
-- REST API
+Проект создан как практика изучения Go и построен в стиле Hexagonal / Clean Architecture.
+
+Основные компоненты:
+
+- REST API;
+- Telegram Bot;
+- CLI.
+
+## Документация
+
+- [Архитектура проекта](docs/structure.md)
+- [CLI команды](docs/cli/readme.md)
+- [OpenAPI спецификация](docs/openapi/openapi.yaml)
+- [Команды запуска и Makefile](docs/makefile.md)
+
+## Стек
+
+- Go 1.26.4
+- PostgreSQL 16
+- Redis
+- Chi
+- Goose migrations
+- Docker / Docker Compose
 - OpenAPI
 - Telegram Bot API
-- GORM
-- SQL migrations
-- Docker / Docker Compose
-- gRPC (in progress)
-- JSON/File storage
-- Context / Graceful shutdown
-- Middleware
+- Squirrel
+- GORM (для примера) 
 
-## Доступные контейнеры
+## Компоненты
 
-### Консольный
-Запуск `go run cmd/cli/main.go`  
-[Справочник команд](https://github.com/leyke/todoshnik/blob/main/docs/cli/readme.md)
+### API
 
-### АПИ
-Запуск `go run cmd/api/main.go`  
-[OpenApi спецификция](https://github.com/leyke/todoshnik/blob/main/docs/openapi/openapi.yaml)
+REST API для:
 
-### TG Bot
-Запуск `go run cmd/tg_bot/main.go`  
+- регистрации и авторизации;
+- управления задачами;
+- Telegram-аутентификации.
+
+Спецификация: [OpenAPI](docs/openapi/openapi.yaml)
+
+---
+
+### Telegram Bot
+
+Работа с задачами через Telegram.
+
 [@todoshnik_bot](https://t.me/todoshnik_bot)
 
-### Запуск
-#### Установка зависимостей
-`make deps`
-#### Проверка кода
-`make lint`
-#### Миграции
-##### Применить миграции:
-`make migrate-up`
-#### Docker
-##### Запуск всех сервисов:
-`docker compose up --build`
+---
+
+### CLI
+
+Консольный интерфейс для управления задачами.
+
+Документация: [CLI](docs/cli/readme.md)
+
+---
+
+### Миграции
+
+Отдельный executable для применения миграций PostgreSQL через Goose.
+
+---
+
+## Запуск
+
+Все команды запуска, сборки и проверки: [docs/makefile.md](docs/makefile.md)
+
+QuickStart:
+
+```bash
+docker compose up --build
