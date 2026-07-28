@@ -1,13 +1,20 @@
 package api
 
 import (
+	"context"
 	"todoshnik/internal/domains/task"
+	"todoshnik/internal/domains/user"
 )
 
-type Handler struct {
-	service *task.Service
+type UserGetter interface {
+	GetById(ctx context.Context, userID int) (*user.User, error)
 }
 
-func NewHandler(s *task.Service) *Handler {
-	return &Handler{service: s}
+type Handler struct {
+	service    *task.Service
+	userGetter UserGetter
+}
+
+func NewHandler(s *task.Service, ug UserGetter) *Handler {
+	return &Handler{service: s, userGetter: ug}
 }

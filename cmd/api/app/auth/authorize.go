@@ -19,10 +19,5 @@ func (h *Handler) Authorize(
 		return 0, err
 	}
 
-	_, err = h.userService.GetById(ctx, token.UserID)
-	if err != nil {
-		return 0, err
-	}
-
 	return token.UserID, nil
 }

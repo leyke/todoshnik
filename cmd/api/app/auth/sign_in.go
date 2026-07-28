@@ -8,8 +8,6 @@ import (
 	"todoshnik/cmd/api/app/response"
 	"todoshnik/internal/domains/token"
 
-	appuser "todoshnik/internal/domains/user"
-
 	apierrors "todoshnik/cmd/api/app/errors"
 )
 
@@ -28,7 +26,7 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isMatch, err := appuser.ComparePassword(user.PasswordHash, requestDto.Password)
+	isMatch, err := h.userService.ValidatePassword(user.PasswordHash, requestDto.Password)
 
 	if err != nil {
 		h.logger.Printf("ошибка проверки пароля: %v", err)

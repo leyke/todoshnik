@@ -105,12 +105,12 @@ func (repo *DBRepository) GetByHash(ctx context.Context, hash string) (*apptoken
 	return item, nil
 }
 
-func (repo *DBRepository) GetExpiredTokens(ctx context.Context) ([]*apptoken.Token, error) {
+func (repo *DBRepository) GetExpiredTokens(ctx context.Context, before time.Time) ([]*apptoken.Token, error) {
 	builder := squirrel.
 		Select("id", "user_id", "hash", "device", "expires_at").
 		From("tokens").
 		PlaceholderFormat(squirrel.Dollar).
-		Where(squirrel.Lt{"expires_at": time.Now()}).
+		Where(squirrel.Lt{"expires_at": before}).
 		OrderBy("id")
 
 	query, args, err := builder.ToSql()

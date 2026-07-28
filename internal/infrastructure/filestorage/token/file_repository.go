@@ -74,7 +74,7 @@ func (repo *FileRepository) GetByHash(ctx context.Context, hash string) (*tokend
 	return nil, nil
 }
 
-func (repo *FileRepository) GetExpiredTokens(ctx context.Context) ([]*tokendomain.Token, error) {
+func (repo *FileRepository) GetExpiredTokens(ctx context.Context, before time.Time) ([]*tokendomain.Token, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -84,11 +84,9 @@ func (repo *FileRepository) GetExpiredTokens(ctx context.Context) ([]*tokendomai
 	default:
 	}
 
-	localTime := time.Now()
-
 	result := make([]*tokendomain.Token, 0, len(repo.items))
 	for _, token := range repo.items {
-		if token.ExpiresAt.Before(localTime) {
+		if token.ExpiresAt.Before(before) {
 			result = append(result, token)
 		}
 	}

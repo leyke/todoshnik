@@ -10,7 +10,7 @@ GOLANGCI_LINT_VERSION := v2.12.2
 VERSION := $(shell git describe --tags --always)
 COMMIT := $(shell git rev-parse --short HEAD)
 
-.PHONY: deps lint migrate-up
+.PHONY: deps lint-deps lint migrate-up clean build up down debug debug-down
 
 deps:
 	GOBIN=$(BIN_DIR) go install github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION)
@@ -32,4 +32,11 @@ build:
 		--build-arg APP_VERSION=$(VERSION) \
 		--build-arg APP_COMMIT_HASH=$(COMMIT)
 
+up: build
 	docker compose up
+
+down:
+	docker compose down
+
+debug:
+	docker compose up --build api-debug db redis migrate

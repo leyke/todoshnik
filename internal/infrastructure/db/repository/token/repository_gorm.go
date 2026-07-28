@@ -38,10 +38,9 @@ func (repo *GormDBRepository) GetByHash(ctx context.Context, hash string) (*appt
 	return token, nil
 }
 
-func (repo *GormDBRepository) GetExpiredTokens(ctx context.Context) ([]*apptoken.Token, error) {
+func (repo *GormDBRepository) GetExpiredTokens(ctx context.Context, before time.Time) ([]*apptoken.Token, error) {
 	var result []*apptoken.Token
-	localTime := time.Now().Unix()
-	err := repo.db.WithContext(ctx).Where("expires_at < ?", localTime).Find(&result).Error
+	err := repo.db.WithContext(ctx).Where("expires_at < ?", before).Find(&result).Error
 	if err != nil {
 		return nil, err
 	}

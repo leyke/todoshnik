@@ -13,10 +13,13 @@ import (
 
 	"todoshnik/internal/infrastructure/db"
 	"todoshnik/internal/infrastructure/db/transaction"
+	"todoshnik/internal/infrastructure/security/password"
+	"todoshnik/internal/infrastructure/utils/clock"
 
 	taskrepo "todoshnik/internal/infrastructure/db/repository/task"
 	tokenrepo "todoshnik/internal/infrastructure/db/repository/token"
 	userrepo "todoshnik/internal/infrastructure/db/repository/user"
+	securitytoken "todoshnik/internal/infrastructure/security/token"
 
 	rdb "todoshnik/internal/infrastructure/redis"
 
@@ -68,13 +71,23 @@ func newServices(dataBase *sql.DB, cfg config.Config) *Services {
 	userRepo := userrepo.NewRepository(dataBase)
 	tokenRepo := tokenrepo.NewRepository(dataBase)
 
+	realClock := clock.New()
+	passwordHasher := password.NewBcryptHasher()
+	tokenHasher := securitytoken.NewHMACHasher(cfg.App.TokenSecret)
+
 	return &Services{
 		TaskService: task.NewService(taskRepo),
-		UserService: user.NewService(userRepo),
-		TokenService: token.NewService(tokenRepo, token.Config{
-			Secret: cfg.App.TokenSecret,
-			Ttl:    cfg.App.TokenTtl,
-		}),
+
+		UserService: user.NewService(userRepo, passwordHasher),
+
+		TokenService: token.NewService(
+			tokenRepo,
+			tokenHasher,
+			realClock,
+			token.Config{
+				Ttl: cfg.App.TokenTtl,
+			},
+		),
 	}
 }
 

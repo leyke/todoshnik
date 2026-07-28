@@ -3,48 +3,50 @@ package token
 import (
 	"context"
 	"errors"
-	"time"
 
 	userdomain "todoshnik/internal/domains/user"
 )
 
 type Service struct {
-	repo Repository
-	cfg  Config
+	repo           Repository
+	tokenGenerator TokenGenerator
+	clock          Clock
+	cfg            Config
 }
 
-func NewService(repo Repository, cfg Config) *Service {
+func NewService(repo Repository, tokenGenerator TokenGenerator, clock Clock, cfg Config) *Service {
 	return &Service{
-		repo: repo,
-		cfg:  cfg,
+		repo:           repo,
+		tokenGenerator: tokenGenerator,
+		clock:          clock,
+		cfg:            cfg,
 	}
 }
 
 func (s *Service) Add(ctx context.Context, user *userdomain.User, device DeviceType) (string, error) {
-	token, tokenError := GenerateToken()
+	token, tokenError := s.tokenGenerator.Generate()
 	if tokenError != nil {
 		return "", tokenError
 	}
 
-	hash := HashToken(token, s.cfg.Secret)
-	localTime := time.Now().Add(s.cfg.Ttl)
+	hash := s.tokenGenerator.Hash(token)
+	localTime := s.clock.Now().Add(s.cfg.Ttl)
 
-	tokenObject := &Token{
+	_, err := s.repo.Create(ctx, &Token{
 		UserID:    user.ID,
 		Hash:      hash,
 		ExpiresAt: localTime,
 		Device:    device,
-	}
-
-	_, err := s.repo.Create(ctx, tokenObject)
+	})
 	if err != nil {
 		return "", err
 	}
+
 	return token, nil
 }
 
 func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
-	hash := HashToken(rawToken, s.cfg.Secret)
+	hash := s.tokenGenerator.Hash(rawToken)
 
 	token, err := s.repo.GetByHash(ctx, hash)
 
@@ -56,7 +58,7 @@ func (s *Service) Get(ctx context.Context, rawToken string) (*Token, error) {
 }
 
 func (s *Service) ClearExpiredTokens(ctx context.Context) (int, error) {
-	tokens, err := s.repo.GetExpiredTokens(ctx)
+	tokens, err := s.repo.GetExpiredTokens(ctx, s.clock.Now())
 	if err != nil {
 		return 0, err
 	}

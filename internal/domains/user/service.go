@@ -10,12 +10,14 @@ import (
 )
 
 type Service struct {
-	repo Repository
+	repo           Repository
+	passwordHasher PasswordHasher
 }
 
-func NewService(repo Repository) *Service {
+func NewService(repo Repository, passwordHasher PasswordHasher) *Service {
 	return &Service{
-		repo: repo,
+		repo:           repo,
+		passwordHasher: passwordHasher,
 	}
 }
 
@@ -25,7 +27,10 @@ func (s *Service) Add(ctx context.Context, name string, login string, password s
 		return nil, usererrors.ErrConflict
 	}
 
-	passwordHash := HashPassword(password)
+	passwordHash, err := s.passwordHasher.Hash(password)
+	if err != nil {
+		return nil, err
+	}
 
 	newUser := &User{
 		Name:         name,
@@ -38,7 +43,7 @@ func (s *Service) Add(ctx context.Context, name string, login string, password s
 		return nil, ve
 	}
 
-	user, err := s.repo.Create(ctx, newUser)
+	user, err = s.repo.Create(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +114,10 @@ func (s *Service) GetByLogin(ctx context.Context, login string) (*User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *Service) ValidatePassword(hash string, password string) (bool, error) {
+	return s.passwordHasher.Compare(hash, password)
 }
 
 func (s *Service) GetById(ctx context.Context, userID int) (*User, error) {

@@ -21,6 +21,13 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
 		return
 	}
+	
+	// на случай проверки прав или какой либо логики по юзеру, пока проверяю только наличие в базе
+	_, err = h.userGetter.GetById(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
+		return
+	}
 
 	scope := getScope(userID)
 	err = h.service.Delete(r.Context(), id, scope)
