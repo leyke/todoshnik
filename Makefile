@@ -39,4 +39,14 @@ down:
 	docker compose down
 
 debug:
-	docker compose up --build api-debug db redis migrate
+	docker compose \
+		-f docker-compose.yml \
+		-f docker-compose.debug.yml \
+		build \
+		--build-arg APP_VERSION=$(VERSION) \
+		--build-arg APP_COMMIT_HASH=$(COMMIT)
+
+	docker compose \
+		-f docker-compose.yml \
+		-f docker-compose.debug.yml \
+		up

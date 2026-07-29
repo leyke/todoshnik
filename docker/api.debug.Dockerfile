@@ -9,4 +9,4 @@ RUN go mod download
 
 COPY . .
 
-CMD ["dlv", "debug", "./cmd/api", "--headless", "--listen=:40000", "--api-version=2", "--accept-multiclient", "--log"]
+CMD ["dlv", "debug", "./cmd/api", "--headless", "--continue", "--listen=:40000", "--api-version=2", "--accept-multiclient", "--log"]
