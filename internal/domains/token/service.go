@@ -62,15 +62,16 @@ func (s *Service) ClearExpiredTokens(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	counter := 0
+	deletedCount := 0
 	errs := make([]error, 0, len(tokens))
 	for _, token := range tokens {
 		err := s.repo.Delete(ctx, token)
 		if err != nil {
-			counter++
 			errs = append(errs, err)
+		} else {
+			deletedCount++
 		}
 	}
 
-	return counter, errors.Join(errs...)
+	return deletedCount, errors.Join(errs...)
 }
