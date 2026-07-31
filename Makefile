@@ -50,3 +50,6 @@ debug:
 		-f docker-compose.yml \
 		-f docker-compose.debug.yml \
 		up
+
+test:
+	go test ./...

@@ -5,8 +5,6 @@ import (
 
 	"todoshnik/internal/infrastructure/identity"
 	"todoshnik/internal/infrastructure/validation"
-
-	taskerrors "todoshnik/internal/domains/task/errors"
 )
 
 type Service struct {
@@ -87,13 +85,7 @@ func (s *Service) MarkDone(ctx context.Context, taskId int, scope identity.Acces
 }
 
 func (s *Service) Get(ctx context.Context, taskId int, scope identity.AccessScope) (*Task, error) {
-	task, err := s.repo.GetByID(ctx, taskId, scope)
-
-	if task == nil {
-		return nil, taskerrors.ErrNotFound
-	}
-
-	return task, err
+	return s.repo.GetByID(ctx, taskId, scope)
 }
 
 func validateTask(task *Task) error {

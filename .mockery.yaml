@@ -1,0 +1,11 @@
+with-expecter: true
+
+packages:
+  todoshnik/internal/domains/task:
+    config:
+      dir: internal/domains/task/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      Repository: {}
