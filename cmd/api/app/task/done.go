@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"todoshnik/cmd/api/app/response"
@@ -36,6 +35,6 @@ func (h *Handler) Done(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("UserID: %d | Отмечена как выполненная задача: %v\n", scope.UserID, id)
+	h.logger.Printf("UserID: %d | Отмечена как выполненная задача: %v\n", scope.UserID, id)
 	response.WriteJSON(w, http.StatusOK, task)
 }

@@ -52,6 +52,10 @@ func (e ValidationError) Error() string {
 	return errors.Join(errs...).Error()
 }
 
+func (e ValidationError) Unwrap() error {
+	return e.err
+}
+
 func NewValidationErrorFromValidator(err error) ValidationError {
 	var ve validator.ValidationErrors
 	if !errors.As(err, &ve) {

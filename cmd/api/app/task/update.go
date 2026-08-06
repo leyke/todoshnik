@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"todoshnik/cmd/api/app/request"
@@ -51,6 +50,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("UserID: %d | Обновлена задача: %v\n", scope.UserID, task.ID)
+	h.logger.Printf("UserID: %d | Обновлена задача: %v\n", scope.UserID, task.ID)
 	response.WriteJSON(w, http.StatusOK, task)
 }

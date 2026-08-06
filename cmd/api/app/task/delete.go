@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"todoshnik/cmd/api/app/response"
@@ -21,7 +20,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized: не найден пользователь", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// на случай проверки прав или какой либо логики по юзеру, пока проверяю только наличие в базе
 	_, err = h.userGetter.GetById(r.Context(), userID)
 	if err != nil {
@@ -36,6 +35,6 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("UserID: %d | Удалена задача: %v\n", scope.UserID, id)
+	h.logger.Printf("UserID: %d | Удалена задача: %v\n", scope.UserID, id)
 	response.WriteJSON(w, http.StatusNoContent, nil)
 }

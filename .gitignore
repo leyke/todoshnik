@@ -17,3 +17,4 @@ tmp/*
 # Delve debug binaries
 __debug_bin*
 
+coverage.out

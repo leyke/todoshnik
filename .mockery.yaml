@@ -9,3 +9,12 @@ packages:
       mockname: "{{.InterfaceName}}Mock"
     interfaces:
       Repository: {}
+  todoshnik/cmd/api/app/task:
+    config:
+      dir: cmd/api/app/task/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      UserGetter: {}
+      TaskService: {}

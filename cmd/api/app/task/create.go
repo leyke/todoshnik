@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"todoshnik/cmd/api/app/request"
 	"todoshnik/cmd/api/app/response"
@@ -35,7 +34,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, err)
 		return
 	}
-	fmt.Printf("UserID: %d | Создана задача: %v\n", userID, task.ID)
+	h.logger.Printf("UserID: %d | Создана задача: %v\n", userID, task.ID)
 	response.WriteJSON(w, http.StatusOK, task)
 
 }

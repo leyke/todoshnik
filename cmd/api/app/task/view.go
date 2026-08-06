@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"todoshnik/cmd/api/app/response"
@@ -32,10 +31,10 @@ func (h *Handler) View(w http.ResponseWriter, r *http.Request) {
 	scope := getScope(userID)
 	task, err := h.service.Get(r.Context(), id, scope)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		response.WriteError(w, err)
 		return
 	}
 
-	fmt.Printf("UserID: %d | Просмотрена задача: %v\n", scope.UserID, task.ID)
+	h.logger.Printf("UserID: %d | Просмотрена задача: %v\n", scope.UserID, task.ID)
 	response.WriteJSON(w, http.StatusOK, task)
 }

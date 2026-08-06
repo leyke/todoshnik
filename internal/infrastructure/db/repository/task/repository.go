@@ -67,7 +67,8 @@ func (repo *DBRepository) List(ctx context.Context, filter task.TaskFilter) ([]*
 		_ = rows.Close()
 	}()
 
-	var items []*task.Task
+	items := make([]*task.Task, 0)
+
 	for rows.Next() {
 		item := &task.Task{}
 

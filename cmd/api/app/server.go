@@ -26,7 +26,7 @@ type APIHandler struct {
 
 func NewAPIHandler(services *app.Services, logger *log.Logger, transactor *transaction.Transactor, config Config) *APIHandler {
 	return &APIHandler{
-		taskHandler: taskapi.NewHandler(services.TaskService, services.UserService),
+		taskHandler: taskapi.NewHandler(services.TaskService, services.UserService, logger),
 		authHandler: authapi.NewHandler(services.UserService, services.TokenService, logger, transactor),
 		logger:      logger,
 		config:      config,

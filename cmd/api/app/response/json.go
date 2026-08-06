@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"todoshnik/internal/infrastructure/validation"
+
 	apierrors "todoshnik/cmd/api/app/errors"
+	taskerrors "todoshnik/internal/domains/task/errors"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data any) {
@@ -20,7 +23,8 @@ func WriteJSON(w http.ResponseWriter, status int, data any) {
 
 func WriteError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, apierrors.ErrNotFound):
+	case errors.Is(err, taskerrors.ErrNotFound),
+		errors.Is(err, apierrors.ErrNotFound):
 		WriteJSON(w, http.StatusNotFound, ErrorResponse{Error: err.Error()})
 	case errors.Is(err, apierrors.ErrEmptyBody):
 		WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
@@ -30,6 +34,8 @@ func WriteError(w http.ResponseWriter, err error) {
 		WriteJSON(w, http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
 	case errors.Is(err, apierrors.ErrConflict):
 		WriteJSON(w, http.StatusConflict, ErrorResponse{Error: err.Error()})
+	case errors.Is(err, validation.ErrNotValidate):
+		WriteJSON(w, http.StatusUnprocessableEntity, ErrorResponse{Error: err.Error()})
 	default:
 		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
