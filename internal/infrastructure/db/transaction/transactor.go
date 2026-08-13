@@ -15,10 +15,7 @@ func NewTransactor(db *sql.DB) *Transactor {
 	}
 }
 
-func (t *Transactor) WithinTransaction(
-	ctx context.Context,
-	fn func(context.Context) error,
-) error {
+func (t *Transactor) WithinTransaction(ctx context.Context, fn func(context.Context) error) error {
 	tx, err := t.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

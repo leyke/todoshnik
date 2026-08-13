@@ -14,10 +14,7 @@ const (
 )
 
 type Authorizer interface {
-	Authorize(
-		ctx context.Context,
-		token string,
-	) (int, error)
+	Authorize(ctx context.Context, token string) (int, error)
 }
 
 func Auth(authorizer Authorizer) func(http.Handler) http.Handler {

@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -40,7 +41,7 @@ func TestHandler_Done(t *testing.T) {
 			userSvc *mocks.UserGetterMock,
 		)
 		wantStatus int
-		wantTask   task.Task
+		wantTask   *task.Task
 		taskURI    string
 	}{
 		{
@@ -60,6 +61,12 @@ func TestHandler_Done(t *testing.T) {
 						Done:   true,
 						UserID: testScope.UserID,
 					}, nil)
+			},
+			wantTask: &task.Task{
+				ID:     1,
+				Title:  "Тестовый таск",
+				Done:   true,
+				UserID: testScope.UserID,
 			},
 			wantStatus: http.StatusOK,
 		},
@@ -160,6 +167,13 @@ func TestHandler_Done(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			router.ServeHTTP(rec, req)
+
+			if tt.wantTask != nil {
+				var got *task.Task
+
+				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+				require.Equal(t, tt.wantTask, got)
+			}
 
 			require.Equal(t, tt.wantStatus, rec.Code)
 		})

@@ -21,6 +21,13 @@ lint-deps:
 lint: lint-deps
 	golangci-lint run
 
+test:
+	go test ./... -v
+
+test-cover:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out
+
 migrate-up: deps
 	goose -dir $(MIGRATIONS_DIR) postgres "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)" up
 
@@ -51,5 +58,5 @@ debug:
 		-f docker-compose.debug.yml \
 		up
 
-test:
-	go test ./...
+mock:
+	mockery

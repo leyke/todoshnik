@@ -9,7 +9,7 @@ import (
 	"todoshnik/internal/domains/token"
 
 	apierrors "todoshnik/cmd/api/app/errors"
-	tokenerror "todoshnik/internal/domains/token/errors"
+	usererrors "todoshnik/internal/domains/user/errors"
 )
 
 func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
@@ -21,20 +21,23 @@ func (h *Handler) TgLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.userService.GetByTgId(r.Context(), requestDto.TgUserID)
-	if err != nil {
-		response.WriteError(w, apierrors.ErrNotFound)
-		return
-	}
 
-	accessToken, err := h.tokenService.Add(r.Context(), user, token.DeviceTypeApi)
-
-	if errors.Is(err, tokenerror.ErrUserNotFound) {
+	if errors.Is(err, usererrors.ErrNotFound) {
 		response.WriteError(w, apierrors.ErrNotFound)
 		return
 	}
 
 	if err != nil {
-		response.WriteError(w, apierrors.ErrUnauth)
+		h.logger.Printf("ошибка поиска пользователя: %v", err)
+		response.WriteError(w, err)
+		return
+	}
+
+	accessToken, err := h.tokenService.Add(r.Context(), user, token.DeviceTypeBot)
+
+	if err != nil {
+		h.logger.Printf("ошибка создания токена: %v", err)
+		response.WriteError(w, err)
 		return
 	}
 

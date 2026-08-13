@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"todoshnik/cmd/api/app/request"
 	"todoshnik/cmd/api/app/response"
 	"todoshnik/internal/domains/token"
+	usererrors "todoshnik/internal/domains/user/errors"
 
 	apierrors "todoshnik/cmd/api/app/errors"
 )
@@ -22,6 +24,10 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.GetByLogin(r.Context(), requestDto.Login)
 	if err != nil {
+		if !errors.Is(err, usererrors.ErrNotFound) {
+			h.logger.Printf("ошибка поиска пользователя: %v", err)
+		}
+
 		response.WriteError(w, fmt.Errorf("%w: неверный логин или пароль", apierrors.ErrUnauth))
 		return
 	}
@@ -41,6 +47,7 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, err := h.tokenService.Add(r.Context(), user, token.DeviceTypeApi)
 	if err != nil {
+		h.logger.Printf("ошибка создания токена: %v", err)
 		response.WriteError(w, err)
 		return
 	}
