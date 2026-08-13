@@ -26,6 +26,9 @@ test:
 
 test-cover:
 	go test ./... -coverprofile=coverage.out
+	grep -v '/mocks/' coverage.out > coverage.tmp
+	mv coverage.tmp coverage.out
+	go tool cover -func=coverage.out
 	go tool cover -html=coverage.out
 
 migrate-up: deps

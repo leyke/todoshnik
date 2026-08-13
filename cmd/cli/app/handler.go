@@ -4,20 +4,30 @@ import (
 	"context"
 	"fmt"
 
-	"todoshnik/internal/app"
 	"todoshnik/internal/domains/task"
-	"todoshnik/internal/domains/token"
+	"todoshnik/internal/infrastructure/identity"
 )
 
-type Handler struct {
-	taskService  *task.Service
-	tokenService *token.Service
+type TaskService interface {
+	Add(ctx context.Context, title string, taskID int) (*task.Task, error)
+	List(ctx context.Context, filter task.TaskFilter) ([]*task.Task, error)
+	MarkDone(ctx context.Context, taskID int, scope identity.AccessScope) (*task.Task, error)
+	Delete(ctx context.Context, taskID int, scope identity.AccessScope) error
 }
 
-func NewHandler(services *app.Services) *Handler {
+type TokenService interface {
+	ClearExpiredTokens(ctx context.Context) (int, error)
+}
+
+type Handler struct {
+	taskService  TaskService
+	tokenService TokenService
+}
+
+func NewHandler(srvTask TaskService, srvToken TokenService) *Handler {
 	return &Handler{
-		taskService:  services.TaskService,
-		tokenService: services.TokenService,
+		taskService:  srvTask,
+		tokenService: srvToken,
 	}
 }
 

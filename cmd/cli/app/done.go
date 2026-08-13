@@ -15,7 +15,7 @@ func (h *Handler) done(ctx context.Context, args []string) {
 	task, err := h.taskService.MarkDone(ctx, taskId, identity.AccessScope{IsAdmin: true})
 	if err != nil {
 		printErr(err, "Ошибка пометки задачи как выполненной")
-
+		return
 	}
 
 	printInfo("Задача помечена как выполненная: ")

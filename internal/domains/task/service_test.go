@@ -8,6 +8,7 @@ import (
 	"todoshnik/internal/domains/task"
 	"todoshnik/internal/domains/task/mocks"
 	"todoshnik/internal/infrastructure/identity"
+	"todoshnik/internal/infrastructure/validation"
 
 	taskerrors "todoshnik/internal/domains/task/errors"
 
@@ -55,6 +56,14 @@ func TestService_Add(t *testing.T) {
 					)
 			},
 			wantErr: errDB,
+		},
+		{
+			name:   "невалидное название задачи",
+			title:  "ab",
+			userID: 10,
+			setup: func(repo *mocks.RepositoryMock) {
+			},
+			wantErr: validation.ErrNotValidate,
 		},
 	}
 
@@ -180,6 +189,22 @@ func TestService_Update(t *testing.T) {
 					Return(nil, errDB)
 			},
 			wantErr: errDB,
+		},
+		{
+			name:  "невалидное название задачи",
+			title: "ab",
+			done:  newTestDone,
+			scope: testScope,
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					GetByID(
+						mock.Anything,
+						existingTestTask.ID,
+						testScope,
+					).
+					Return(existingTestTask, nil)
+			},
+			wantErr: validation.ErrNotValidate,
 		},
 	}
 
@@ -411,6 +436,34 @@ func TestService_MarkDone(t *testing.T) {
 
 			},
 		},
+		{
+			name:     "ошибка при обновлении задачи",
+			taskId:   existingTestTask.ID,
+			wantDone: testDone,
+			scope:    testScope,
+			wantErr:  errDB,
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					GetByID(
+						mock.Anything,
+						existingTestTask.ID,
+						testScope,
+					).
+					Return(existingTestTask, nil)
+
+				repo.EXPECT().
+					Update(
+						mock.Anything,
+						mock.MatchedBy(func(t *task.Task) bool {
+							return t.ID == existingTestTask.ID &&
+								t.UserID == existingTestTask.UserID &&
+								t.Title == existingTestTask.Title &&
+								t.Done == testDone
+						}),
+					).
+					Return(errDB)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -429,6 +482,180 @@ func TestService_MarkDone(t *testing.T) {
 
 			require.NoError(t, gotErr)
 			require.Equal(t, tt.wantDone, got.Done)
+		})
+	}
+}
+
+func TestService_Delete(t *testing.T) {
+	testScope := identity.AccessScope{
+		UserID: 10,
+	}
+
+	testTask := &task.Task{
+		ID:     15,
+		Title:  "Задача",
+		Done:   false,
+		UserID: testScope.UserID,
+	}
+
+	errDB := errors.New("ошибка БД")
+
+	tests := []struct {
+		name    string
+		setup   func(repo *mocks.RepositoryMock)
+		wantErr error
+	}{
+		{
+			name: "успешное удаление",
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					GetByID(
+						mock.Anything,
+						testTask.ID,
+						testScope,
+					).
+					Return(testTask, nil)
+
+				repo.EXPECT().
+					Delete(
+						mock.Anything,
+						testTask,
+					).
+					Return(nil)
+			},
+		},
+		{
+			name:    "ошибка при получении задачи",
+			wantErr: errDB,
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					GetByID(
+						mock.Anything,
+						testTask.ID,
+						testScope,
+					).
+					Return(nil, errDB)
+			},
+		},
+		{
+			name:    "ошибка при удалении задачи",
+			wantErr: errDB,
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					GetByID(
+						mock.Anything,
+						testTask.ID,
+						testScope,
+					).
+					Return(testTask, nil)
+
+				repo.EXPECT().
+					Delete(
+						mock.Anything,
+						testTask,
+					).
+					Return(errDB)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := mocks.NewRepositoryMock(t)
+
+			tt.setup(repo)
+
+			service := task.NewService(repo)
+
+			err := service.Delete(
+				context.Background(),
+				testTask.ID,
+				testScope,
+			)
+
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestService_List(t *testing.T) {
+	testScope := identity.AccessScope{
+		UserID: 10,
+	}
+
+	filter := task.TaskFilter{
+		Status: task.StatusPending,
+		Scope:  testScope,
+	}
+
+	expected := []*task.Task{
+		{
+			ID:     1,
+			Title:  "Задача",
+			Done:   false,
+			UserID: testScope.UserID,
+		},
+	}
+
+	errDB := errors.New("ошибка БД")
+
+	tests := []struct {
+		name    string
+		setup   func(repo *mocks.RepositoryMock)
+		want    []*task.Task
+		wantErr error
+	}{
+		{
+			name: "успешное получение списка",
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					List(
+						mock.Anything,
+						filter,
+					).
+					Return(expected, nil)
+			},
+			want: expected,
+		},
+		{
+			name: "ошибка репозитория",
+			setup: func(repo *mocks.RepositoryMock) {
+				repo.EXPECT().
+					List(
+						mock.Anything,
+						filter,
+					).
+					Return(nil, errDB)
+			},
+			wantErr: errDB,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := mocks.NewRepositoryMock(t)
+
+			tt.setup(repo)
+
+			service := task.NewService(repo)
+
+			got, err := service.List(
+				context.Background(),
+				filter,
+			)
+
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

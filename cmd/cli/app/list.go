@@ -9,8 +9,9 @@ import (
 )
 
 func (h *Handler) list(ctx context.Context, args []string) {
-	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+	listCmd := flag.NewFlagSet("list", flag.ContinueOnError)
 	status := listCmd.String("status", "", "Фильтр по статусу: completed или pending")
+
 	err := listCmd.Parse(args[2:])
 	if err != nil {
 		printErr(err, "ошибка получения параметров команды")

@@ -36,3 +36,12 @@ packages:
       mockname: "{{.InterfaceName}}Mock"
     interfaces:
       Authorizer: {}
+  todoshnik/cmd/cli/app:
+    config:
+      dir: cmd/cli/app/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      TokenService: {}
+      TaskService: {}
