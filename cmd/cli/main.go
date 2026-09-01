@@ -1,28 +1,39 @@
 package main
 
-// импорты нужно разделять по разным соглашениям на 2 или 3 группы:
-// - зависимости из стандартной библиотеки
-// - зависимости из проекта
-// - сторонние зависимости
-// Кажется это есть в Убер стайл гайде из ссылок в гуглдоке
 import (
+	"fmt"
+	"log"
 	"os"
-	"todoshnik/internal/app"
-	"todoshnik/internal/cli"
+
+	"todoshnik/cmd/tg_bot/app"
+	"todoshnik/internal/config"
+
+	cli "todoshnik/cmd/cli/app"
 )
 
-// так никто не делает, не нужно указывать тип при инициализации
-// тут бы больше подошла константа, потому что ты не ожидаешь что в рантайме значение будет переопределено
-//
-// еще лучше было бы получать путь в переменных окружения
-//
-// еще лучше следовать манифесту 12 факторного приложения и писать логи в stdout, stderr
-var logFileName string = "/cli.log"
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
 
 func main() {
-	container := app.InitApp(logFileName)
-	defer container.LogFile.Close()
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
 
-	cli := cli.NewHandler(container.TaskService, container.TokenService)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
+
+	container, err := app.InitApp(cfg)
+	if err != nil {
+		log.Fatalf("init app: %v", err)
+	}
+
+	cli := cli.NewHandler(container.Services.TaskService, container.Services.TokenService)
 	cli.Run(os.Args)
+
+	if err := container.Close(); err != nil {
+		log.Println(err)
+	}
 }

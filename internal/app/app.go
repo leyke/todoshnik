@@ -1,132 +1,110 @@
 package app
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"log"
-	"os"
-	"todoshnik/internal/auth/token"
-	"todoshnik/internal/infrastructure/db"
-	rdb "todoshnik/internal/infrastructure/redis"
-	"todoshnik/internal/task"
-	"todoshnik/internal/user"
 
-	"github.com/joho/godotenv"
+	"todoshnik/internal/config"
+	"todoshnik/internal/domains/task"
+	"todoshnik/internal/domains/token"
+	"todoshnik/internal/domains/user"
+
+	"todoshnik/internal/infrastructure/db"
+	"todoshnik/internal/infrastructure/db/transaction"
+	"todoshnik/internal/infrastructure/security/password"
+	"todoshnik/internal/infrastructure/utils/clock"
+
+	taskrepo "todoshnik/internal/infrastructure/db/repository/task"
+	tokenrepo "todoshnik/internal/infrastructure/db/repository/token"
+	userrepo "todoshnik/internal/infrastructure/db/repository/user"
+	securitytoken "todoshnik/internal/infrastructure/security/token"
+
+	rdb "todoshnik/internal/infrastructure/redis"
+
 	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
+	DB         *sql.DB
+	Cache      *redis.Client
+	Logger     *log.Logger
+	Transactor *transaction.Transactor
+
+	Services *Services
+}
+
+type Services struct {
 	TaskService  *task.Service
 	UserService  *user.Service
 	TokenService *token.Service
-	Logger       *log.Logger
-	LogFile      *os.File
-	Cache        *redis.Client
 }
 
-// Приложение может совершенно спокойно не проинициализироваться: не поднялась база, некорректные настройки,
-// некорректная инфраструктура. Необходимо или падать с фаталом и логом, но лучше возвращать ошибку и падать с фаталом
-// в одном месте в main
-//
-// TODO изучить работу с ошибками и wrapping ошибок !!!
-func InitApp(logFileName string) *App {
+func InitApp(cfg config.Config) (*App, error) {
+	log := NewLogger()
 
-	// Изучи что такое init функция в го
-	// - может ли в одном пакете быть 2 инит функции?
-	// - в каком порядке выполняются инит функции в пакете
-	// можно поддержать флаги и принимать log-dir через флаги
-	_ = godotenv.Load()
-
-	// 1. я не сторонник такого
-	// можно провести аналогию с прогоном миграций из приложения при старте приложения (это совсем нежизнеспособно)
-	// приложение не должно управлять ифраструктурой в которой запускается
-	// - это лишняя ответственность
-	// - пользоатель от имени которого запускается приложение может (и не должен) обладать правами на создание каких-то
-	// папок польза от такого подхода (когда приложение само сетапит) может быть только в тогда если инфрой занимаются
-	// неквалифицированные инженеры, но в случае подхода infrastructure as a code эта проблема тоже решается само собой.
-	// Вполне можно и нужно хранить рецепты в репозитории с приложением
-	tmpDir := os.Getenv("TMP_DIR")
-	// что если переменная окружения $TMP_DIR пуста?
-	os.MkdirAll(tmpDir, 0755)
-	// Смертельный грех- быть оптимистом, как тут делать ни в коем случае нельзя:
-	// 1. Обязательно надо проверять ошибку на nil если функция может вернуть ошибку. Скрывать ошибки– хреновая практика
-	// от того что мы игнорируем ошибки приложение лучше, более надежным не становится, а искать проблему потом можно
-	// оч долго.
-	// 2. Если ты хочешь в моменте не забивать этим себе голову, то можно написать
-	// _ = os.MkdirAll(tmpDir, 0755)
-	// тем самым явно указав свое намерение
-	// 3. Очень часто указанную директорию нельзя будет создать а) потому что промежуточной деректории может не быть,
-	// может тупо не быть прав на создание директории
-
-	// 2. Работать с разрозненными настройками оч тяжело работать
-	// Недопустипо работать с env и флагами где-то вне aplication слоя приложения, иначе это превращается в ад в
-	// поддержке нужно завести структуру Config которая внутри себя будет содержать более конкретные структуры с
-	// настройками отдельных компонентов: Config{ App{version, host, port}, DB{host, port, user, pass}, Logger{...},
-	// Another-third-party-service{ host, port, timeout, cache_ttl, ... } }.
-	// Этот конфиг инициализируется перед(или при) стартом приложения, передается в приложения. Больше эти настройки
-	// переопределить нельзя.
-
-	// 3. Не надо путать инфраструктурные настройки от настроек приложения. Другими словами есть неизменяемые настройки
-	// хост/порт внешнего сервиса, а есть изменяемвые во время работы приложения настройки: размеры батча/таймауты/
-	// кол-во запускаемых горутин, лимиты семафоров. Это тоже настройки приложения, но динамические. Есть разные школы
-	// мысли как с этим работать
-
-	log, logFile := NewLogger(tmpDir + logFileName)
-
-	dataBase, err := db.NewGormDb()
-	// 1. Ну вот тут молодец, падаешь, лайк, но лучше вернуть ошибку и падать в мейне чтобы получился каскад вида:
-	// InitAppError: Db init error: host 127.0.0.1 unavailable
-	// 2. Не хватает прокидывания контекста (могу ошибаться), меня смущает что ты говорил про gracefully shutdown, но
-	// как мы можем это сделать не дожидаясь завершение подключения к БД? Если мы какой-то ресурс инициализируем, то
-	// мы должны его и отдать. Нужно передавать или контекст (и вейт группу) или должен вызываться какой-то Colse()
-	// метод (возможно блокирующий). При этом может быть важен порядок закрытия ресурсов. Можно придерживаться правила
-	// что отдаем мы ресурсы в порядке обратном инициализации. Если этому не следовать, то можно закрыть логер (который
-	// инициализировался первым) а при закрытии других компонентов пытаться что-то логировать в закрытый логер, что
-	// приведет или к аварийному завершению или к тому что наши логи так и останутся в буфере логера и умрут вместе с
-	// приложением.
-	// TODO разобраться досконально с контекстом
-	// TODO разобраться с defer функцией
-	// - порядок вызова
-	// - время жизни переменных из скоупа
-	// - передача в дефер переменных по значению
-	// - передача в дефер переменных по ссылке
-	// TODO разобраться с вейт группой и другими примитивами синхронизации
-	// - atomic
-	// - mutex (RLock/RWLock)
-	// - chan пока лучше не трогать, но если есть силы, то можно (именно с точки зрения синхронизации потоков)
-	// - waitgroup
-	// - errgroup
-	// - семафор
-	// - какие типы потокобезопасны а какие нет
-	// - что такое критическая секция и когда возникает
-	// - когда отдавать блокировки
-	// - TODO владение ресурсами (в том чилсе блокировками) и идиома RAII
-	// - плюсы и минусы отдачи блокировок через defer?
+	redisBase, err := rdb.NewClient(cfg)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("init redis: %w", err)
 	}
 
-	// 1. Уверен что редис тоже при инициализации возвращает ошибку которую мы подавили и спрятали в пакете
-	// 2. И тут и в PG надо прокидывать конфиг в аргументах
-	redisBase := rdb.NewClient()
+	dataBase, err := db.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init database: %w", err)
+	}
 
-	// Репозитории
-	taskRepo := task.NewDbRepository(dataBase)
-	userRepo := user.NewDbRepository(dataBase)
-	tokenRepo := token.NewDbRepository(dataBase)
+	transactor := transaction.NewTransactor(dataBase)
 
-	// 1. За то что есть структура App- однозначно лайк, но я бы группировал более гранулярно по уровням, потому что
-	// уровни приложения не должны пересекаться и это проявляется на уровне инициализации: инфраструктурные зависимости:
-	// logger, logFile это core зависимости, redis зависит от logger по идее и это инфраструктурная зависимость.
-	// TaskService, UserService, TokenService зависят от логера и от инфраструктурной зависимости (бд, редиса). Кстати
-	// не вижу в Апп БД которую мы инициализировали. Все что мы инициализируем в Апп должно быть в Апп иначе это
-	// утечка ресурса.
-	// 2. Как писал выше должен быть какой-то app.Close() который будет завершать работу и заканчивать работу с
-	// зависимостями и освобождать ресурсы
 	return &App{
-		TaskService:  task.NewService(taskRepo),
-		UserService:  user.NewService(userRepo),
-		TokenService: token.NewService(tokenRepo),
-		Logger:       log,
-		LogFile:      logFile,
-		Cache:        redisBase,
+		Logger:     log,
+		Cache:      redisBase,
+		DB:         dataBase,
+		Transactor: transactor,
+		Services:   newServices(dataBase, cfg),
+	}, nil
+}
+
+func newServices(dataBase *sql.DB, cfg config.Config) *Services {
+	// Репозитории
+	taskRepo := taskrepo.NewRepository(dataBase)
+	userRepo := userrepo.NewRepository(dataBase)
+	tokenRepo := tokenrepo.NewRepository(dataBase)
+
+	realClock := clock.New()
+	passwordHasher := password.NewBcryptHasher()
+	tokenHasher := securitytoken.NewHMACHasher(cfg.App.TokenSecret)
+
+	return &Services{
+		TaskService: task.NewService(taskRepo),
+
+		UserService: user.NewService(userRepo, passwordHasher),
+
+		TokenService: token.NewService(
+			tokenRepo,
+			tokenHasher,
+			realClock,
+			token.Config{
+				Ttl: cfg.App.TokenTtl,
+			},
+		),
 	}
+}
+
+func (app *App) Close() error {
+	var errs []error
+
+	if app.DB != nil {
+		if err := app.DB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close sql db: %w", err))
+		}
+	}
+
+	if app.Cache != nil {
+		if err := app.Cache.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close redis: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }

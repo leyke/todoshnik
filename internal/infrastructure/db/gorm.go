@@ -1,23 +1,15 @@
 package db
 
 import (
-	"os"
+	"todoshnik/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func NewGormDb() (*gorm.DB, error) {
-	// 1. То о чем я говорил– не нужно давать растекаться по проекту работе с переменными окружения. Переменные
-	// окружения не должны меняться по ходу работы приложения, отлавливать потом по всему коду все места использования
-	// если у тебя изменится название переменной крайне трудоемко, а потом страшно запускать потому что хз где может
-	// отвалиться + нужен будет регрессионный тест
-	// 2. Не понял как накатываются миграции, возможно ты руками их накатываешь?
-	// 3. Миграции не должны лежать где-то внутри internal, потому что в cicd они будут наказываться инфраструктурой,
-	//    следовательно они должны лежать где-то в корне проекта
-	// 4. TODO задание: у тебя приложение запускается в 10 экземплярах в 5 датацентрах, как и когда должны накатываться
-	//    миграции для бесперибойной работы сервиса? Какие есть ограничения?
-	dsn := "host=" + os.Getenv("DB_HOST") + " user=" + os.Getenv("DB_USER") + " password=" + os.Getenv("DB_PASSWORD") + " dbname=" + os.Getenv("DB_NAME") + " port=" + os.Getenv("DB_PORT") + " sslmode=disable"
+// deprcated Оставляю для примера
+func NewGormDb(cfg config.Config) (*gorm.DB, error) {
+	dsn := "host=" + cfg.Postgres.Host + " user=" + cfg.Postgres.User + " password=" + cfg.Postgres.Password + " dbname=" + cfg.Postgres.DBName + " port=" + cfg.Postgres.Port + " sslmode=" + cfg.Postgres.SSLMode
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	return db, err

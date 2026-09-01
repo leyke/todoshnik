@@ -1,0 +1,47 @@
+with-expecter: true
+
+packages:
+  todoshnik/internal/domains/task:
+    config:
+      dir: internal/domains/task/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      Repository: {}
+  todoshnik/cmd/api/app/task:
+    config:
+      dir: cmd/api/app/task/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      UserGetter: {}
+      TaskService: {}
+  todoshnik/cmd/api/app/auth:
+    config:
+      dir: cmd/api/app/auth/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      TokenService: {}
+      UserService: {}
+      Transactor: {}
+  todoshnik/cmd/api/app/middleware:
+    config:
+      dir: cmd/api/app/middleware/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      Authorizer: {}
+  todoshnik/cmd/cli/app:
+    config:
+      dir: cmd/cli/app/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      TokenService: {}
+      TaskService: {}

@@ -6,11 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"todoshnik/internal/api"
-	"todoshnik/internal/app"
-)
 
-var logFileName string = "/api.log"
+	"todoshnik/internal/app"
+	"todoshnik/internal/config"
+
+	server "todoshnik/cmd/api/app"
+)
 
 func main() {
 	ctx, stop := signal.NotifyContext(
@@ -20,12 +21,20 @@ func main() {
 	)
 	defer stop()
 
-	container := app.InitApp(logFileName)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
 
-	apiHandler := api.NewAPIHandler(container)
+	container, err := app.InitApp(cfg)
+	if err != nil {
+		log.Fatalf("init app: %v", err)
+	}
+
+	apiHandler := server.NewAPIHandler(container.Services, container.Logger, container.Transactor, server.Config{BotServiceToken: cfg.Telegram.ServiceToken})
 
 	go func() {
-		if err := apiHandler.Run(); err != nil {
+		if err := apiHandler.Run(cfg.App); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -44,11 +53,7 @@ func main() {
 		log.Println(err)
 	}
 
-	if err := container.Cache.Close(); err != nil {
-		log.Println(err)
-	}
-
-	if err := container.LogFile.Close(); err != nil {
+	if err := container.Close(); err != nil {
 		log.Println(err)
 	}
 }

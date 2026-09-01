@@ -3,10 +3,6 @@ services:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
-    volumes:
-      // не понял зачем монтировать диск, для логов? Логи в stdout
-      // !!! манифест 12 факторного приложения https://12factor.net/ru/
-      - ./tmp:/app/tmp:rw
     ports:
       - ${API_PORT}:8080
     healthcheck:
@@ -19,6 +15,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - .env
 
@@ -26,9 +24,6 @@ services:
     build:
       context: .
       dockerfile: docker/bot.Dockerfile
-
-    volumes:
-      - ./tmp:/app/tmp:rw
 
     depends_on:
       api:
@@ -58,14 +53,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    // где-то должен быть или отдельный контейнер с миграциями или монтироваться директория с миграциями?
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/migrate.Dockerfile
+    volumes:
+      - ./internal/infrastructure/db/migrations:/app/internal/infrastructure/db/migrations:r
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
 
   redis:
     image: redis:7
     container_name: redis
     ports:
-      - "6379:6379"
-    // везде прокидывал порт, а а тут- нет
+      - ${REDIS_PORT}:6379
 
 volumes:
   pgdata:

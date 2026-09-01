@@ -1,183 +1,211 @@
-# Структура проекта
+# Архитектура проекта todoshnik
 
-Проект `todoshnik` организован по классической архитектуре Go-приложения с отдельными точками входа, бизнес-логикой и вспомогательными компонентами.
+## Общее описание
+
+`todoshnik` — Go-приложение для управления задачами с несколькими точками взаимодействия:
+
+- REST API;
+- Telegram Bot;
+- CLI интерфейс.
+
+Проект построен с использованием подхода, близкого к Hexagonal Architecture / Clean Architecture:
+
+- бизнес-логика находится в доменных слоях;
+- инфраструктура вынесена отдельно;
+- зависимости передаются через Dependency Injection;
+- домены работают через интерфейсы;
+- конкретные реализации подключаются на уровне приложения.
+
+Основные технологии:
+
+- Go 1.26.4;
+- PostgreSQL 16;
+- Redis;
+- REST API на chi;
+- Telegram Bot API;
+- Docker;
+- Goose migrations.
+
+---
+
+# Общая структура каталогов
 
 ```text
 .
+├── bin
+│   ├── golangci-lint
+│   └── goose
 ├── cmd
 │   ├── api
+│   │   ├── app
+│   │   │   ├── auth
+│   │   │   ├── errors
+│   │   │   ├── middleware
+│   │   │   ├── request
+│   │   │   ├── response
+│   │   │   ├── task
+│   │   │   ├── config.go
+│   │   │   ├── router.go
+│   │   │   └── server.go
 │   │   └── main.go
 │   ├── cli
+│   │   ├── app
+│   │   │   ├── add.go
+│   │   │   ├── clear_tokens.go
+│   │   │   ├── delete.go
+│   │   │   ├── done.go
+│   │   │   ├── handler.go
+│   │   │   ├── helper.go
+│   │   │   ├── list.go
+│   │   │   └── printer.go
+│   │   └── main.go
+│   ├── migrate
 │   │   └── main.go
 │   └── tg_bot
+│       ├── app
+│       │   ├── auth
+│       │   ├── bot
+│       │   ├── task
+│       │   └── app.go
 │       └── main.go
 ├── docker
 │   ├── api.Dockerfile
-│   └── bot.Dockerfile
-├── docker-compose.yml
+│   ├── api.debug.Dockerfile
+│   ├── bot.Dockerfile
+│   └── migrate.Dockerfile
 ├── docs
 │   ├── cli
-│   │   └── readme.md
 │   ├── openapi
-│   │   └── openapi.yaml
-|   └── structure.md
-├── go.mod
-├── go.sum
+│   └── structure.md
 ├── internal
-│   ├── api
-│   │   ├── middleware
-│   │   │   ├── auth.go
-│   │   │   └── logging.go
-│   │   ├── request
-│   │   │   └── json.go
-│   │   ├── response
-│   │   │   ├── error.go
-│   │   │   └── json.go
-│   │   ├── router.go
-│   │   └── server.go
 │   ├── app
 │   │   ├── app.go
 │   │   └── logger.go
-│   ├── auth
-│   │   ├── api
-│   │   │   ├── dto.go
-│   │   │   ├── get_authorized_user.go
-│   │   │   ├── handler.go
-│   │   │   ├── sign_in.go
-│   │   │   ├── sign_up.go
-│   │   │   ├── tg_auto_reg.go
-│   │   │   └── tg_login.go
-│   │   ├── bot
-│   │   │   ├── dto.go
-│   │   │   ├── get_token.go
-│   │   │   ├── handler.go
-│   │   │   └── sign_in_user.go
-│   │   ├── config.go
-│   │   ├── context
-│   │   │   ├── context.go
-│   │   │   ├── token.go
-│   │   │   └── user.go
-│   │   ├── device.go
-│   │   ├── helper.go
-│   │   └── token
-│   │       ├── filestorage.go
-│   │       ├── helper.go
-│   │       ├── repository.go
-│   │       ├── repository_db.go
-│   │       ├── repository_file.go
-│   │       ├── service.go
-│   │       └── token.go
-│   ├── bot
-│   │   ├── auth.go
-│   │   ├── callback.go
-│   │   ├── command.go
-│   │   ├── handler.go
-│   │   ├── message.go
-│   │   ├── response
-│   │   │   ├── error.go
-│   │   │   ├── inline_keyboard.go
-│   │   │   └── task.go
-│   │   ├── sender.go
-│   │   ├── session
-│   │   │   ├── session.go
-│   │   │   ├── state_helper.go
-│   │   │   └── storage.go
-│   │   ├── tg
-│   │   │   ├── callback.go
-│   │   │   ├── command.go
-│   │   │   └── state.go
-│   │   └── update_dispatcher.go
-│   ├── cli
-│   │   ├── add.go
-│   │   ├── clear_tokens.go
-│   │   ├── delete.go
-│   │   ├── done.go
-│   │   ├── handler.go
-│   │   ├── helper.go
-│   │   ├── list.go
-│   │   └── printer.go
-│   ├── client
-│   │   └── client_api.go
-│   ├── constants
-│   │   └── emoji.go
-│   ├── errors
-│   │   └── errors.go
-│   ├── identity
-│   │   └── scope.go
-│   ├── infrastructure
-│   │   ├── db
-│   │   │   ├── gorm.go
-│   │   │   └── migrations
-│   │   └── redis
-│   │       └── redis.go
-│   ├── storage
-│   │   ├── filestorage.go
-│   │   └── storage.go
-│   ├── task
-│   │   ├── api
-│   │   │   ├── create.go
-│   │   │   ├── delete.go
-│   │   │   ├── done.go
-│   │   │   ├── dto.go
-│   │   │   ├── handler.go
-│   │   │   ├── helpers.go
-│   │   │   ├── list.go
-│   │   │   ├── update.go
-│   │   │   └── view.go
-│   │   ├── bot
-│   │   │   ├── add.go
-│   │   │   ├── delete.go
-│   │   │   ├── done.go
-│   │   │   ├── dto.go
-│   │   │   ├── handler.go
-│   │   │   ├── list.go
-│   │   │   └── ui_helper.go
-│   │   ├── filestorage.go
-│   │   ├── filter.go
-│   │   ├── model.go
-│   │   ├── repository.go
-│   │   ├── repository_db.go
-│   │   ├── repository_file.go
-│   │   └── service.go
-│   ├── user
-│   │   ├── filestorage.go
-│   │   ├── repository.go
-│   │   ├── repository_db.go
-│   │   ├── repository_file.go
-│   │   ├── service.go
-│   │   └── user.go
-│   └── validation
-│       └── validation.go
-├── readme.md
-└── tmp
-    ├── api.log
-    ├── cli.log
-    ├── tasks.json
-    ├── tg.log
-    ├── tokens.json
-    └── users.json
+│   ├── config
+│   │   └── config.go
+│   ├── domains
+│   │   ├── task
+│   │   ├── token
+│   │   └── user
+│   └── infrastructure
+│       ├── api_client
+│       ├── context_manager
+│       ├── db
+│       ├── filestorage
+│       ├── identity
+│       ├── redis
+│       ├── security
+│       ├── utils
+│       └── validation
+├── docker-compose.yml
+├── go.mod
+└── go.sum
 ```
 
-Описание каталогов:
+## Описание каталогов
 
-- `cmd` — точки входа для запуска API-сервера, CLI-клиента и Telegram-бота.
-- `docker` — Dockerfile для контейнеризации API и бота.
-- `docker-compose.yml` — конфигурация для запуска сервисов вместе.
-- `docs` — документация по CLI и OpenAPI спецификация.
-- `internal` — внутренняя реализация приложения, недоступная для внешних пакетов.
-  - `api` — HTTP-сервер, маршруты, middleware и JSON-обработка.
-  - `app` — инициализация приложения и логирование.
-  - `auth` — авторизация, работа с токенами, контекстом и Telegram-аутентификацией.
-  - `bot` — логика Telegram-бота, обработка команд, сессий и ответов.
-  - `cli` — локальный интерфейс командной строки для управления задачами.
-  - `client` — API-клиент для внутреннего или внешнего использования.
-  - `constants` — константы, в том числе эмодзи.
-  - `errors` — общее определение ошибок.
-  - `identity` — управление правами доступа и областью видимости.
-  - `infrastructure` — адаптеры для работы с БД и Redis.
-  - `storage` — файловое хранилище и общий интерфейс хранения.
-  - `task` — бизнес-логика работы с задачами для API, бота и хранилища.
-  - `user` — хранение и сервисы пользователей.
-  - `validation` — общие правила валидации данных.
-- `tmp` — временные файлы и логи, используемые во время запуска.
-- `readme.md`, `go.mod`, `go.sum` — документация проекта и зависимости Go.
+- `cmd` — точки входа приложения. Содержит отдельные executable:
+  - `api` — HTTP REST API сервер, маршруты, middleware, обработчики запросов и ответов.
+  - `tg_bot` — Telegram-бот, обработка команд, взаимодействие с API и Redis-хранилищами.
+  - `cli` — консольный интерфейс для управления задачами и токенами.
+  - `migrate` — утилита запуска миграций базы данных через Goose.
+
+- `docker` — Dockerfile для сборки и запуска компонентов приложения:
+  - `api.Dockerfile` — production-сборка API сервера.
+  - `api.debug.Dockerfile` — debug-сборка API с поддержкой Delve.
+  - `bot.Dockerfile` — сборка Telegram-бота.
+  - `migrate.Dockerfile` — контейнер для применения миграций.
+
+- `docker-compose.yml` — конфигурация запуска полного окружения:
+  - API;
+  - Telegram-бот;
+  - PostgreSQL;
+  - Redis;
+  - миграции базы данных.
+
+- `docs` — документация проекта:
+  - `openapi` — спецификация REST API в формате OpenAPI.
+  - `cli` — документация по CLI интерфейсу.
+  - `structure.md` — описание архитектуры и структуры проекта.
+
+- `internal` — внутренняя реализация приложения. Код из данного пакета не предназначен для использования внешними модулями.
+
+  - `app` — сборка приложения и Dependency Injection:
+    - создание общих сервисов;
+    - настройка logger;
+    - управление жизненным циклом приложения.
+
+  - `config` — загрузка и описание конфигурации приложения:
+    - API настройки;
+    - PostgreSQL;
+    - Redis;
+    - Telegram Bot.
+
+  - `domains` — бизнес-логика приложения, разделенная по предметным областям:
+    
+    - `task` — доменная логика задач:
+      - модели задач;
+      - сервисы;
+      - фильтры;
+      - интерфейс репозитория.
+
+    - `user` — доменная логика пользователей:
+      - модель пользователя;
+      - сервисы;
+      - работа с паролями;
+      - интерфейс репозитория.
+
+    - `token` — доменная логика токенов:
+      - генерация токенов;
+      - проверка сроков действия;
+      - управление токенами;
+      - интерфейсы репозитория и генератора.
+
+  - `infrastructure` — реализации внешних зависимостей и технические адаптеры:
+
+    - `api_client` — клиент для взаимодействия с внешним или внутренним API.
+
+    - `context_manager` — управление контекстом приложения:
+      - хранение данных авторизованного пользователя;
+      - передача auth context между слоями.
+
+    - `db` — работа с базой данных:
+      - подключение к PostgreSQL;
+      - GORM конфигурация;
+      - миграции;
+      - реализации репозиториев;
+      - управление транзакциями.
+
+      Подкаталоги:
+      - `repository/task` — хранение и получение задач.
+      - `repository/user` — работа с пользователями.
+      - `repository/token` — работа с токенами.
+      - `transaction` — управление транзакциями.
+
+    - `filestorage` — файловое хранилище и интерфейсы работы с ним.
+
+    - `identity` — управление правами доступа и областью видимости пользователя.
+
+    - `redis` — работа с Redis:
+      - подключение;
+      - Telegram Bot storage:
+        - command storage;
+        - token storage.
+
+    - `security` — компоненты безопасности:
+      - хеширование паролей;
+      - работа с токенами.
+
+    - `utils` — вспомогательные инструменты:
+      - работа с временем;
+      - тестовые утилиты.
+
+    - `validation` — общие правила валидации данных и обработка ошибок валидации.
+
+- `bin` — локальные бинарные инструменты проекта:
+  - golangci-lint;
+  - goose.
+
+- `go.mod` — описание Go-модуля и зависимостей проекта.
+
+- `go.sum` — контрольные суммы зависимостей Go.
