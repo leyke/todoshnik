@@ -28,6 +28,7 @@ func (repo *DBRepository) GetAllByUserID(ctx context.Context, userID int) ([]*ap
 		Select("id", "user_id", "hash", "device", "expires_at").
 		PlaceholderFormat(squirrel.Dollar).
 		From("tokens").
+		Where(squirrel.Eq{"user_id": userID}).
 		OrderBy("id")
 
 	query, args, err := builder.ToSql()
@@ -197,7 +198,7 @@ func (repo *DBRepository) Delete(ctx context.Context, t *apptoken.Token) error {
 	// Выполняем запрос
 	executor := db.ExecutorFromContext(ctx, repo.db)
 
-	_, err = executor.
+	result, err := executor.
 		ExecContext(
 			ctx,
 			query,
@@ -206,6 +207,15 @@ func (repo *DBRepository) Delete(ctx context.Context, t *apptoken.Token) error {
 
 	if err != nil {
 		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return tokenerror.ErrNotFound
 	}
 
 	return nil
