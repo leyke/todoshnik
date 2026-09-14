@@ -45,3 +45,11 @@ packages:
     interfaces:
       TokenService: {}
       TaskService: {}
+  todoshnik/internal/domains/user:
+    config:
+      dir: internal/domains/user/mocks
+      outpkg: mocks
+      filename: "{{.InterfaceName}}Mock.go"
+      mockname: "{{.InterfaceName}}Mock"
+    interfaces:
+      Repository: {}

@@ -70,8 +70,7 @@ func (repo *DBRepository) GetByID(ctx context.Context, id int) (*appuser.User, e
 		PlaceholderFormat(squirrel.Dollar).
 		Where(squirrel.Eq{"id": id})
 
-	query, args, err := builder.
-		ToSql()
+	query, args, err := builder.ToSql()
 
 	if err != nil {
 		return nil, err
@@ -202,7 +201,7 @@ func (repo *DBRepository) Update(ctx context.Context, u *appuser.User) error {
 		Set("name", u.Name).
 		Set("telegram_id", u.TelegramID).
 		Set("login", u.Login).
-		Set("passwordHash", u.PasswordHash).
+		Set("password_hash", u.PasswordHash).
 		Where(squirrel.Eq{"id": u.ID}).
 		ToSql()
 
@@ -250,7 +249,7 @@ func (repo *DBRepository) Delete(ctx context.Context, u *appuser.User) error {
 	// Выполняем запрос
 	executor := db.ExecutorFromContext(ctx, repo.db)
 
-	_, err = executor.
+	result, err := executor.
 		ExecContext(
 			ctx,
 			query,
@@ -259,6 +258,15 @@ func (repo *DBRepository) Delete(ctx context.Context, u *appuser.User) error {
 
 	if err != nil {
 		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return usererrors.ErrNotFound
 	}
 
 	return nil

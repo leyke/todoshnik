@@ -70,7 +70,8 @@ func TestService_Add(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Date(2026, 7, 29, 10, 0, 0, 0, time.UTC)
-
+	
+	// можно заменить на билдящую функцию
 	user := &userdomain.User{
 		ID: testUserID,
 	}

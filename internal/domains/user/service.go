@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"todoshnik/internal/infrastructure/validation"
 
@@ -22,7 +23,11 @@ func NewService(repo Repository, passwordHasher PasswordHasher) *Service {
 }
 
 func (s *Service) Add(ctx context.Context, name string, login string, password string) (*User, error) {
-	user, _ := s.repo.GetByLogin(ctx, login)
+	user, err := s.repo.GetByLogin(ctx, login)
+	if err != nil {
+		return nil, err
+	}
+
 	if user != nil {
 		return nil, usererrors.ErrConflict
 	}
@@ -51,7 +56,11 @@ func (s *Service) Add(ctx context.Context, name string, login string, password s
 }
 
 func (s *Service) AddFromTg(ctx context.Context, name string, telegramID int64) (*User, error) {
-	user, _ := s.repo.GetByTgId(ctx, telegramID)
+	user, err := s.repo.GetByTgId(ctx, telegramID)
+	if err != nil {
+		return nil, err
+	}
+
 	if user != nil {
 		return user, nil
 	}
@@ -59,6 +68,7 @@ func (s *Service) AddFromTg(ctx context.Context, name string, telegramID int64) 
 	newUser := &User{
 		Name:       name,
 		TelegramID: telegramID,
+		Login:      strconv.FormatInt(telegramID, 10),
 	}
 
 	ve := validateUser(newUser)
@@ -66,7 +76,7 @@ func (s *Service) AddFromTg(ctx context.Context, name string, telegramID int64) 
 		return nil, ve
 	}
 
-	user, err := s.repo.Create(ctx, newUser)
+	user, err = s.repo.Create(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +88,9 @@ func (s *Service) List(ctx context.Context) ([]*User, error) {
 }
 
 func (s *Service) Update(ctx context.Context, userID int, name string) (*User, error) {
-	user, errNotFound := s.GetById(ctx, userID)
-	if errNotFound != nil {
-		return nil, usererrors.ErrNotFound
+	user, err := s.GetById(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
 
 	updated := *user
