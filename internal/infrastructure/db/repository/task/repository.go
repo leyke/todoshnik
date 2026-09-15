@@ -212,7 +212,7 @@ func (repo *DBRepository) Delete(ctx context.Context, t *task.Task) error {
 	// Выполняем запрос
 	executor := db.ExecutorFromContext(ctx, repo.db)
 
-	_, err = executor.
+	result, err := executor.
 		ExecContext(
 			ctx,
 			query,
@@ -221,6 +221,15 @@ func (repo *DBRepository) Delete(ctx context.Context, t *task.Task) error {
 
 	if err != nil {
 		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return taskerrors.ErrNotFound
 	}
 
 	return nil

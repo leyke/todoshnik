@@ -11,6 +11,8 @@ import (
 
 func NewError(chatID int64, err error) tgbotapi.Chattable {
 	var msg tgbotapi.Chattable
+	var apiErr *client.ApiError
+
 	switch {
 	case errors.Is(err, client.ErrNotFound):
 		msg = tgbotapi.NewMessage(chatID, err.Error())
@@ -20,6 +22,8 @@ func NewError(chatID int64, err error) tgbotapi.Chattable {
 		msg = tgbotapi.NewMessage(chatID, "Я хз что это такое, если бы я знал что это такое, я бы помог /help")
 	case errors.Is(err, boterrors.ErrInvalidTaskID):
 		msg = tgbotapi.NewMessage(chatID, "Неверный ID задачи")
+	case errors.As(err, &apiErr):
+		msg = tgbotapi.NewMessage(chatID, apiErr.Message)
 	default:
 		msg = tgbotapi.NewMessage(chatID, "Возникла непредвиденная ошибка")
 	}

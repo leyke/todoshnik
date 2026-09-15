@@ -1,3 +1,5 @@
+//go:build integration
+
 package token_test
 
 import (
@@ -79,6 +81,15 @@ func TestDBRepository_GetAllByUserID_Success(t *testing.T) {
 
 	fixtures := ApplyFixtures(t, db)
 	testUserID := fixtures[0].UserID
+
+	var count int
+	err := db.QueryRow(
+		"SELECT count(*) FROM tokens WHERE user_id = $1",
+		testUserID,
+	).Scan(&count)
+
+	require.NoError(t, err)
+	require.Equal(t, 2, count)
 
 	result, err := repo.GetAllByUserID(ctx, testUserID)
 

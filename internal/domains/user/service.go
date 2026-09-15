@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strconv"
 
 	"todoshnik/internal/infrastructure/validation"
@@ -57,7 +57,7 @@ func (s *Service) Add(ctx context.Context, name string, login string, password s
 
 func (s *Service) AddFromTg(ctx context.Context, name string, telegramID int64) (*User, error) {
 	user, err := s.repo.GetByTgId(ctx, telegramID)
-	if err != nil {
+	if err != nil && !errors.Is(err, usererrors.ErrNotFound) {
 		return nil, err
 	}
 
@@ -151,7 +151,6 @@ func (s *Service) GetByTgId(ctx context.Context, userTgID int64) (*User, error) 
 func validateUser(user *User) error {
 	ve := validation.Validate(user)
 	if ve != nil {
-		fmt.Println(ve)
 		return validation.NewValidationErrorFromValidator(ve)
 	}
 	return nil

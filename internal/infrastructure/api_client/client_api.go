@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -73,11 +72,21 @@ func (c *ApiClient) Get(ctx context.Context, endpoint string, query url.Values) 
 			_ = resp.Body.Close()
 		}()
 
-		return nil, fmt.Errorf(
-			"api error: %d: %s",
-			resp.StatusCode,
-			string(respBody),
-		)
+		var apiErr struct {
+			Error string `json:"error"`
+		}
+
+		if err := json.Unmarshal(respBody, &apiErr); err != nil {
+			return nil, &ApiError{
+				StatusCode: resp.StatusCode,
+				Message:    string(respBody),
+			}
+		}
+
+		return nil, &ApiError{
+			StatusCode: resp.StatusCode,
+			Message:    apiErr.Error,
+		}
 	}
 
 	return resp, nil
@@ -127,11 +136,21 @@ func (c *ApiClient) Post(ctx context.Context, endpoint string, payload any) (*ht
 			_ = resp.Body.Close()
 		}()
 
-		return nil, fmt.Errorf(
-			"api error: %d: %s",
-			resp.StatusCode,
-			string(respBody),
-		)
+		var apiErr struct {
+			Error string `json:"error"`
+		}
+
+		if err := json.Unmarshal(respBody, &apiErr); err != nil {
+			return nil, &ApiError{
+				StatusCode: resp.StatusCode,
+				Message:    string(respBody),
+			}
+		}
+
+		return nil, &ApiError{
+			StatusCode: resp.StatusCode,
+			Message:    apiErr.Error,
+		}
 	}
 
 	return resp, nil
@@ -177,11 +196,21 @@ func (c *ApiClient) Put(ctx context.Context, endpoint string, payload any) (*htt
 			_ = resp.Body.Close()
 		}()
 
-		return nil, fmt.Errorf(
-			"api error: %d: %s",
-			resp.StatusCode,
-			string(respBody),
-		)
+		var apiErr struct {
+			Error string `json:"error"`
+		}
+
+		if err := json.Unmarshal(respBody, &apiErr); err != nil {
+			return nil, &ApiError{
+				StatusCode: resp.StatusCode,
+				Message:    string(respBody),
+			}
+		}
+
+		return nil, &ApiError{
+			StatusCode: resp.StatusCode,
+			Message:    apiErr.Error,
+		}
 	}
 
 	return resp, nil
@@ -221,11 +250,21 @@ func (c *ApiClient) Delete(ctx context.Context, endpoint string) (*http.Response
 			_ = resp.Body.Close()
 		}()
 
-		return nil, fmt.Errorf(
-			"api error: %d: %s",
-			resp.StatusCode,
-			string(respBody),
-		)
+		var apiErr struct {
+			Error string `json:"error"`
+		}
+
+		if err := json.Unmarshal(respBody, &apiErr); err != nil {
+			return nil, &ApiError{
+				StatusCode: resp.StatusCode,
+				Message:    string(respBody),
+			}
+		}
+
+		return nil, &ApiError{
+			StatusCode: resp.StatusCode,
+			Message:    apiErr.Error,
+		}
 	}
 
 	return resp, nil
