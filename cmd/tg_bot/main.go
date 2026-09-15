@@ -2,19 +2,25 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
-	"todoshnik/internal/app"
-	"todoshnik/internal/bot"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"todoshnik/cmd/tg_bot/app"
+	"todoshnik/cmd/tg_bot/app/bot"
+	"todoshnik/internal/config"
 )
 
-var logFileName string = "/tg.log"
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
 
 func main() {
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
+
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,
@@ -22,16 +28,25 @@ func main() {
 	)
 	defer stop()
 
-	container := app.InitApp(logFileName)
-
-	botapi, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("load config: %v", err)
 	}
 
-	botapi.Debug = os.Getenv("TELEGRAM_DEBUG") == "1"
+	container, err := app.InitApp(cfg)
+	if err != nil {
+		log.Fatalf("init app: %v", err)
+	}
 
-	bh := bot.NewHandler(container, botapi)
+	bh := bot.NewHandler(
+		container,
+		bot.Config{
+			ApiURL:            cfg.Telegram.BotApiUrl,
+			BotServiceToken:   cfg.Telegram.ServiceToken,
+			SemaphoreSize:     cfg.Telegram.SemaphoreSize,
+			ApiRequestTimeout: cfg.Telegram.ApiRequestTimeOut,
+		},
+	)
 
 	go func() {
 		if err := bh.Run(); err != nil {
@@ -45,6 +60,7 @@ func main() {
 
 	bh.Shutdown()
 
-	container.Cache.Close()
-	container.LogFile.Close()
+	if err := container.Close(); err != nil {
+		log.Println(err)
+	}
 }

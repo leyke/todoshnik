@@ -1,8 +1,20 @@
+/bin
+/vendor
+/vendor.pb
+/vendor.protogen
+.DS_STORE
+.DS_Store
+/.idea
+/.vscode
+
 tmp/*
 
-.DS_Store
 .42c/*
-.vscode/*
 .vsdb/*
 
 .env
+
+# Delve debug binaries
+__debug_bin*
+
+coverage.out

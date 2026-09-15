@@ -1,17 +1,39 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"os"
-	"todoshnik/internal/app"
-	"todoshnik/internal/cli"
+
+	"todoshnik/cmd/tg_bot/app"
+	"todoshnik/internal/config"
+
+	cli "todoshnik/cmd/cli/app"
 )
 
-var logFileName string = "/cli.log"
+var (
+	AppVersion = "dev"
+	CommitHash = "unknown"
+)
 
 func main() {
-	container := app.InitApp(logFileName)
-	defer container.LogFile.Close()
+	fmt.Println("Version:", AppVersion)
+	fmt.Println("Commit :", CommitHash)
 
-	cli := cli.NewHandler(container.TaskService, container.TokenService)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
+
+	container, err := app.InitApp(cfg)
+	if err != nil {
+		log.Fatalf("init app: %v", err)
+	}
+
+	cli := cli.NewHandler(container.Services.TaskService, container.Services.TokenService)
 	cli.Run(os.Args)
+
+	if err := container.Close(); err != nil {
+		log.Println(err)
+	}
 }

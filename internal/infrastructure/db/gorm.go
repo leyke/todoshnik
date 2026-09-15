@@ -1,14 +1,15 @@
 package db
 
 import (
-	"os"
+	"todoshnik/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func NewGormDb() (*gorm.DB, error) {
-	dsn := "host=" + os.Getenv("DB_HOST") + " user=" + os.Getenv("DB_USER") + " password=" + os.Getenv("DB_PASSWORD") + " dbname=" + os.Getenv("DB_NAME") + " port=" + os.Getenv("DB_PORT") + " sslmode=disable"
+// deprcated Оставляю для примера
+func NewGormDb(cfg config.Config) (*gorm.DB, error) {
+	dsn := "host=" + cfg.Postgres.Host + " user=" + cfg.Postgres.User + " password=" + cfg.Postgres.Password + " dbname=" + cfg.Postgres.DBName + " port=" + cfg.Postgres.Port + " sslmode=" + cfg.Postgres.SSLMode
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	return db, err

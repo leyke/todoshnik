@@ -1,53 +1,110 @@
 package app
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"log"
-	"os"
-	"todoshnik/internal/auth/token"
-	"todoshnik/internal/infrastructure/db"
-	rdb "todoshnik/internal/infrastructure/redis"
-	"todoshnik/internal/task"
-	"todoshnik/internal/user"
 
-	"github.com/joho/godotenv"
+	"todoshnik/internal/config"
+	"todoshnik/internal/domains/task"
+	"todoshnik/internal/domains/token"
+	"todoshnik/internal/domains/user"
+
+	"todoshnik/internal/infrastructure/db"
+	"todoshnik/internal/infrastructure/db/transaction"
+	"todoshnik/internal/infrastructure/security/password"
+	"todoshnik/internal/infrastructure/utils/clock"
+
+	taskrepo "todoshnik/internal/infrastructure/db/repository/task"
+	tokenrepo "todoshnik/internal/infrastructure/db/repository/token"
+	userrepo "todoshnik/internal/infrastructure/db/repository/user"
+	securitytoken "todoshnik/internal/infrastructure/security/token"
+
+	rdb "todoshnik/internal/infrastructure/redis"
+
 	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
+	DB         *sql.DB
+	Cache      *redis.Client
+	Logger     *log.Logger
+	Transactor *transaction.Transactor
+
+	Services *Services
+}
+
+type Services struct {
 	TaskService  *task.Service
 	UserService  *user.Service
 	TokenService *token.Service
-	Logger       *log.Logger
-	LogFile      *os.File
-	Cache        *redis.Client
 }
 
-func InitApp(logFileName string) *App {
-	_ = godotenv.Load()
+func InitApp(cfg config.Config) (*App, error) {
+	log := NewLogger()
 
-	tmpDir := os.Getenv("TMP_DIR")
-	os.MkdirAll(tmpDir, 0755)
-
-	log, logFile := NewLogger(tmpDir + logFileName)
-
-	dataBase, err := db.NewGormDb()
+	redisBase, err := rdb.NewClient(cfg)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("init redis: %w", err)
 	}
 
-	redisBase := rdb.NewClient()
+	dataBase, err := db.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init database: %w", err)
+	}
 
-	// Репозитории
-	taskRepo := task.NewDbRepository(dataBase)
-	userRepo := user.NewDbRepository(dataBase)
-	tokenRepo := token.NewDbRepository(dataBase)
+	transactor := transaction.NewTransactor(dataBase)
 
 	return &App{
-		TaskService:  task.NewService(taskRepo),
-		UserService:  user.NewService(userRepo),
-		TokenService: token.NewService(tokenRepo),
-		Logger:       log,
-		LogFile:      logFile,
-		Cache:        redisBase,
+		Logger:     log,
+		Cache:      redisBase,
+		DB:         dataBase,
+		Transactor: transactor,
+		Services:   newServices(dataBase, cfg),
+	}, nil
+}
+
+func newServices(dataBase *sql.DB, cfg config.Config) *Services {
+	// Репозитории
+	taskRepo := taskrepo.NewRepository(dataBase)
+	userRepo := userrepo.NewRepository(dataBase)
+	tokenRepo := tokenrepo.NewRepository(dataBase)
+
+	realClock := clock.New()
+	passwordHasher := password.NewBcryptHasher()
+	tokenHasher := securitytoken.NewHMACHasher(cfg.App.TokenSecret)
+
+	return &Services{
+		TaskService: task.NewService(taskRepo),
+
+		UserService: user.NewService(userRepo, passwordHasher),
+
+		TokenService: token.NewService(
+			tokenRepo,
+			tokenHasher,
+			realClock,
+			token.Config{
+				Ttl: cfg.App.TokenTtl,
+			},
+		),
 	}
+}
+
+func (app *App) Close() error {
+	var errs []error
+
+	if app.DB != nil {
+		if err := app.DB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close sql db: %w", err))
+		}
+	}
+
+	if app.Cache != nil {
+		if err := app.Cache.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close redis: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
